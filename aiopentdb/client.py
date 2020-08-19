@@ -25,7 +25,7 @@ SOFTWARE.
 import base64
 import html
 import urllib.parse
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import aiohttp
 import yarl
@@ -83,10 +83,10 @@ class Client:
 
     def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
         self.session = session or aiohttp.ClientSession(raise_for_status=True)
-        self.token = None
-        self.categories = None
-        self.category_count = {}
-        self.global_count = None
+        self.token: Optional[str] = None
+        self.categories: Optional[List[Category]] = None
+        self.category_count: Dict[int, CategoryCount] = {}
+        self.global_count: Optional[List[GlobalCount]] = None
 
     async def _fetch(self, endpoint, *args, **kwargs):
         async with self.session.get(self.BASE_URL / endpoint, *args, **kwargs) as response:
@@ -248,14 +248,6 @@ class Client:
         if self.global_count is None:
             self.global_count = await self.fetch_global_count()
         return self.global_count
-
-    # Utility
-
-    async def populate(self) -> None:
-        await self.get_token()
-        await self.get_categories()
-        await self.get_category_count()
-        await self.get_global_count()
 
     # Session
 
