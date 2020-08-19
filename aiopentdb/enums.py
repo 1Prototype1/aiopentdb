@@ -32,21 +32,12 @@ class Difficulty(enum.Enum):
     medium = 'medium'
     hard = 'hard'
 
-    def __str__(self) -> str:
-        return self.value
-
 
 class Type(enum.Enum):
     multiple = 'multiple'
     boolean = 'boolean'
 
-    def __str__(self) -> str:
-        return self.value
-
 
 class Encoding(enum.Enum):
     url = 'url3986'
     base64 = 'base64'
-
-    def __str__(self) -> str:
-        return self.value

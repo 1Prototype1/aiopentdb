@@ -98,36 +98,33 @@ class Client:
     # Question
 
     async def fetch_questions(
-        self, amount: Optional[int] = 10, category: Optional[int] = None,
+        self, amount: int = 10, category: Optional[int] = None,
         difficulty: Optional[Difficulty] = None, type: Optional[Type] = None,
         encoding: Optional[Encoding] = None, token: Optional[str] = None
-    ) -> Optional[List[Question]]:
+    ) -> List[Question]:
 
         if amount < 1 and amount > 50:
-            ValueError("'amount' must be between 1 and 50")
+            raise ValueError("'amount' must be between 1 and 50")
 
         parameters = {'amount': amount}
         if category is not None:
             if category < 9 and category > 32:
-                ValueError("'category' must be between 9 and 32")
+                raise ValueError("'category' must be between 9 and 32")
             parameters['category'] = category
         if difficulty is not None:
-            parameters['difficulty'] = str(difficulty)
+            parameters['difficulty'] = difficulty.value
         if type is not None:
-            parameters['type'] = str(type)
+            parameters['type'] = type.value
         if encoding is not None:
-            parameters['encode'] = str(encoding)
+            parameters['encode'] = encoding.value
         if token is not None:
             parameters['token'] = token
 
         data = await self._fetch('api.php', params=parameters)
-        entries = data['results']
-        if not entries:
-            return None
 
         questions = []
         decoder = _decoders.get(encoding, html.unescape)
-        for entry in entries:
+        for entry in data['results']:
             for field in _fields:
                 entry[field] = decoder(entry[field])
 
@@ -142,10 +139,10 @@ class Client:
         return questions
 
     async def get_questions(
-        self, amount: Optional[int] = 10, category: Optional[int] = None,
+        self, amount: int = 10, category: Optional[int] = None,
         difficulty: Optional[Difficulty] = None, type: Optional[Type] = None,
         encoding: Optional[Encoding] = None
-    ) -> Optional[List[Question]]:
+    ) -> List[Question]:
 
         while True:
             token = await self.get_token()
