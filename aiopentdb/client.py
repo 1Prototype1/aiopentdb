@@ -36,7 +36,7 @@ from .objects import Category, CategoryCount, GlobalCount, Question
 
 __all__ = ('Client',)
 
-_categories = {
+_category_enums = {
     'General Knowledge': CategoryType.general_knowledge,
     'Entertainment: Books': CategoryType.books,
     'Entertainment: Film': CategoryType.film,
@@ -62,11 +62,17 @@ _categories = {
     'Entertainment: Japanese Anime & Manga': CategoryType.anime_and_manga,
     'Entertainment: Cartoon & Animations': CategoryType.cartoon_and_animations
 }
+_category_objects = {
+    enum.value: Category(name, enum.value, enum) for name, enum in _category_enums.items()
+}
+
 _decoders = {
     Encoding.url: urllib.parse.unquote, Encoding.base64: lambda s: base64.b64decode(s).decode()
 }
-_fields = ('category', 'question', 'correct_answer')
+
+_fields = ('category', 'correct_answer')
 _enum_fields = (('type', QuestionType), ('difficulty', Difficulty))
+
 _errors = {1: NoResults, 2: InvalidParameter, 3: TokenNotFound, 4: TokenEmpty}
 
 
@@ -143,6 +149,7 @@ class Client:
         questions = []
         decoder = _decoders.get(encoding, html.unescape)
         for entry in data['results']:
+            entry['content'] = decoder(entry.pop('question'))
             for field in _fields:
                 entry[field] = decoder(entry[field])
 
@@ -150,7 +157,8 @@ class Client:
             for index, incorrect_answer in enumerate(incorrect_answers):
                 incorrect_answers[index] = decoder(incorrect_answer)
 
-            entry['category'] = _categories[entry['category']]
+            category_enum = _category_enums[entry['category']]
+            entry['category'] = _category_objects[category_enum.value]
             for field, enum in _enum_fields:
                 entry[field] = enum(decoder(entry[field]))
 
@@ -194,7 +202,7 @@ class Client:
 
         category_count = data['category_question_count']
         return CategoryCount(
-            category, category_count['total_question_count'],
+            _category_objects[category.value], category_count['total_question_count'],
             category_count['total_easy_question_count'],
             category_count['total_medium_question_count'],
             category_count['total_hard_question_count']
@@ -202,10 +210,10 @@ class Client:
 
     async def get_category_count(self, category: CategoryType) -> CategoryCount:
         if id in self.category_count:
-            return self.category_count[category]
+            return self.category_count[category.value]
 
         category_count = await self.fetch_category_count(category)
-        self.category_count[category] = category_count
+        self.category_count[category.value] = category_count
         return category_count
 
     async def fetch_global_count(self) -> List[GlobalCount]:
@@ -227,7 +235,7 @@ class Client:
         for id, count in categories.items():
             global_count.append(
                 GlobalCount(
-                    CategoryType(int(id)), count['total_num_of_questions'],
+                    _category_objects[int(id)], count['total_num_of_questions'],
                     count['total_num_of_pending_questions'],
                     count['total_num_of_verified_questions'],
                     count['total_num_of_rejected_questions']

@@ -23,6 +23,7 @@ SOFTWARE.
 """
 
 import asyncio
+import functools
 
 import aiopentdb
 
@@ -31,21 +32,27 @@ async def main() -> None:
     # NOTE: Temporary tests
     try:
         client = aiopentdb.Client()
+        wait = functools.partial(asyncio.sleep, 1)
 
         token = await client.get_token()
         print(token, end='\n\n')
+        await wait()
 
         questions = await client.get_questions()
         print(questions, end='\n\n')
+        await wait()
 
         categories = await client.get_categories()
         print(categories, end='\n\n')
+        await wait()
 
         category_count = await client.get_category_count(aiopentdb.CategoryType.general_knowledge)
         print(category_count, end='\n\n')
+        await wait()
 
         global_count = await client.get_global_count()
         print(global_count, end='\n\n')
+        await wait()
 
     finally:
         await client.close()

@@ -40,7 +40,7 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class CategoryCount:
-    category: CategoryType
+    category: Category
     total: int
     easy: int
     medium: int
@@ -49,7 +49,7 @@ class CategoryCount:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    category: Union[CategoryType, str]
+    category: Union[Category, str]
     total: int
     pending: int
     verified: int
@@ -59,9 +59,9 @@ class GlobalCount:
 @dataclasses.dataclass(frozen=True)
 class Question:
     type: QuestionType
-    category: CategoryType
+    category: Category
     difficulty: Difficulty
-    question: str
+    content: str
     correct_answer: str
     incorrect_answers: List[str]
 
