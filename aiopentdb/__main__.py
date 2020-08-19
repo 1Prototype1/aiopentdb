@@ -41,7 +41,7 @@ async def main() -> None:
         categories = await client.get_categories()
         print(categories, end='\n\n')
 
-        category_count = await client.get_category_count(9)
+        category_count = await client.get_category_count(aiopentdb.CategoryType.general_knowledge)
         print(category_count, end='\n\n')
 
         global_count = await client.get_global_count()

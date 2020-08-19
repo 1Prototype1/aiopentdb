@@ -30,24 +30,44 @@ from typing import List, Optional
 import aiohttp
 import yarl
 
-from .enums import Encoding, Difficulty, Type
+from .enums import CategoryType, Encoding, Difficulty, QuestionType
 from .errors import InvalidParameter, NoResults, TokenEmpty, TokenNotFound
 from .objects import Category, CategoryCount, GlobalCount, Question
 
 __all__ = ('Client',)
 
+_categories = {
+    'General Knowledge': CategoryType.general_knowledge,
+    'Entertainment: Books': CategoryType.books,
+    'Entertainment: Film': CategoryType.film,
+    'Entertainment: Music': CategoryType.music,
+    'Entertainment: Musicals & Theatres': CategoryType.musicals_and_theatres,
+    'Entertainment: Television': CategoryType.television,
+    'Entertainment: Video Games': CategoryType.video_games,
+    'Entertainment: Board Games': CategoryType.board_games,
+    'Science & Nature': CategoryType.nature,
+    'Science: Computers': CategoryType.computers,
+    'Science: Mathematics': CategoryType.mathematics,
+    'Mythology': CategoryType.mythology,
+    'Sports': CategoryType.sports,
+    'Geography': CategoryType.geography,
+    'History': CategoryType.history,
+    'Politics': CategoryType.politics,
+    'Art': CategoryType.art,
+    'Celebrities': CategoryType.celebrities,
+    'Animals': CategoryType.animals,
+    'Vehicles': CategoryType.vehicles,
+    'Entertainment: Comics': CategoryType.comics,
+    'Science: Gadgets': CategoryType.gadgets,
+    'Entertainment: Japanese Anime & Manga': CategoryType.anime_and_manga,
+    'Entertainment: Cartoon & Animations': CategoryType.cartoon_and_animations
+}
 _decoders = {
-    Encoding.url: urllib.parse.unquote,
-    Encoding.base64: lambda s: base64.b64decode(s).decode()
+    Encoding.url: urllib.parse.unquote, Encoding.base64: lambda s: base64.b64decode(s).decode()
 }
 _fields = ('category', 'question', 'correct_answer')
-_enum_fields = (('type', Type), ('difficulty', Difficulty))
-_errors = {
-    1: NoResults,
-    2: InvalidParameter,
-    3: TokenNotFound,
-    4: TokenEmpty
-}
+_enum_fields = (('type', QuestionType), ('difficulty', Difficulty))
+_errors = {1: NoResults, 2: InvalidParameter, 3: TokenNotFound, 4: TokenEmpty}
 
 
 class Client:
@@ -98,8 +118,8 @@ class Client:
     # Question
 
     async def fetch_questions(
-        self, amount: int = 10, category: Optional[int] = None,
-        difficulty: Optional[Difficulty] = None, type: Optional[Type] = None,
+        self, amount: int = 10, category: Optional[CategoryType] = None,
+        difficulty: Optional[Difficulty] = None, type: Optional[QuestionType] = None,
         encoding: Optional[Encoding] = None, token: Optional[str] = None
     ) -> List[Question]:
 
@@ -108,9 +128,7 @@ class Client:
 
         parameters = {'amount': amount}
         if category is not None:
-            if category < 9 and category > 32:
-                raise ValueError("'category' must be between 9 and 32")
-            parameters['category'] = category
+            parameters['category'] = category.value
         if difficulty is not None:
             parameters['difficulty'] = difficulty.value
         if type is not None:
@@ -132,6 +150,7 @@ class Client:
             for index, incorrect_answer in enumerate(incorrect_answers):
                 incorrect_answers[index] = decoder(incorrect_answer)
 
+            entry['category'] = _categories[entry['category']]
             for field, enum in _enum_fields:
                 entry[field] = enum(decoder(entry[field]))
 
@@ -139,8 +158,8 @@ class Client:
         return questions
 
     async def get_questions(
-        self, amount: int = 10, category: Optional[int] = None,
-        difficulty: Optional[Difficulty] = None, type: Optional[Type] = None,
+        self, amount: int = 10, category: Optional[CategoryType] = None,
+        difficulty: Optional[Difficulty] = None, type: Optional[QuestionType] = None,
         encoding: Optional[Encoding] = None
     ) -> List[Question]:
 
@@ -157,31 +176,36 @@ class Client:
 
     async def fetch_categories(self) -> List[Category]:
         data = await self._fetch('api_category.php')
-        return [Category(**entry) for entry in data['trivia_categories']]
+
+        categories = []
+        for entry in data['trivia_categories']:
+            entry['type'] = CategoryType(entry['id'])
+            categories.append(Category(**entry))
+        return categories
 
     async def get_categories(self) -> List[Category]:
         if self.categories is None:
             self.categories = await self.fetch_categories()
         return self.categories
 
-    async def fetch_category_count(self, id: int) -> CategoryCount:
-        parameters = {'category': id}
+    async def fetch_category_count(self, category: CategoryType) -> CategoryCount:
+        parameters = {'category': category.value}
         data = await self._fetch('api_count.php', params=parameters)
 
         category_count = data['category_question_count']
         return CategoryCount(
-            id, category_count['total_question_count'],
+            category, category_count['total_question_count'],
             category_count['total_easy_question_count'],
             category_count['total_medium_question_count'],
             category_count['total_hard_question_count']
         )
 
-    async def get_category_count(self, id: int) -> CategoryCount:
+    async def get_category_count(self, category: CategoryType) -> CategoryCount:
         if id in self.category_count:
-            return self.category_count[id]
+            return self.category_count[category]
 
-        category_count = await self.fetch_category_count(id)
-        self.category_count[id] = category_count
+        category_count = await self.fetch_category_count(category)
+        self.category_count[category] = category_count
         return category_count
 
     async def fetch_global_count(self) -> List[GlobalCount]:
@@ -203,7 +227,8 @@ class Client:
         for id, count in categories.items():
             global_count.append(
                 GlobalCount(
-                    id, count['total_num_of_questions'], count['total_num_of_pending_questions'],
+                    CategoryType(int(id)), count['total_num_of_questions'],
+                    count['total_num_of_pending_questions'],
                     count['total_num_of_verified_questions'],
                     count['total_num_of_rejected_questions']
                 )

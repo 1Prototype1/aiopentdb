@@ -26,20 +26,21 @@ import dataclasses
 import random
 from typing import List, Union
 
-from .enums import Difficulty, Type
+from .enums import CategoryType, Difficulty, QuestionType
 
 __all__ = ('Category', 'CategoryCount', 'GlobalCount', 'Question')
 
 
 @dataclasses.dataclass(frozen=True)
 class Category:
-    id: int
     name: str
+    id: int
+    type: CategoryType
 
 
 @dataclasses.dataclass(frozen=True)
 class CategoryCount:
-    id: int
+    category: CategoryType
     total: int
     easy: int
     medium: int
@@ -48,7 +49,7 @@ class CategoryCount:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    id: Union[int, str]
+    category: Union[CategoryType, str]
     total: int
     pending: int
     verified: int
@@ -57,8 +58,8 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
-    category: str
-    type: Type
+    type: QuestionType
+    category: CategoryType
     difficulty: Difficulty
     question: str
     correct_answer: str
