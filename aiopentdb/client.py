@@ -32,7 +32,7 @@ import yarl
 
 from .enums import Encoding, Difficulty, Type
 from .errors import InvalidParameter, NoResults, TokenEmpty, TokenNotFound
-from .objects import Category, CategoryCount, CategoryGlobalCount, Question
+from .objects import Category, CategoryCount, GlobalCount, Question
 
 __all__ = ('Client',)
 
@@ -184,14 +184,14 @@ class Client:
         self.category_count[id] = category_count
         return category_count
 
-    async def fetch_category_global_count(self) -> List[CategoryGlobalCount]:
+    async def fetch_global_count(self) -> List[GlobalCount]:
         data = await self._fetch('api_count_global.php')
 
         global_count = []
 
         overall_count = data['overall']
         global_count.append(
-            CategoryGlobalCount(
+            GlobalCount(
                 'overall', overall_count['total_num_of_questions'],
                 overall_count['total_num_of_pending_questions'],
                 overall_count['total_num_of_verified_questions'],
@@ -202,7 +202,7 @@ class Client:
         categories = data['categories']
         for id, count in categories.items():
             global_count.append(
-                CategoryGlobalCount(
+                GlobalCount(
                     id, count['total_num_of_questions'], count['total_num_of_pending_questions'],
                     count['total_num_of_verified_questions'],
                     count['total_num_of_rejected_questions']
@@ -211,9 +211,9 @@ class Client:
 
         return global_count
 
-    async def get_global_count(self) -> List[CategoryGlobalCount]:
+    async def get_global_count(self) -> List[GlobalCount]:
         if self.global_count is None:
-            self.global_count = await self.fetch_category_global_count()
+            self.global_count = await self.fetch_global_count()
         return self.global_count
 
     # Utility

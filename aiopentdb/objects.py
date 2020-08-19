@@ -28,7 +28,7 @@ from typing import List, Union
 
 from .enums import Difficulty, Type
 
-__all__ = ('Category', 'CategoryCount', 'Question')
+__all__ = ('Category', 'CategoryCount', 'GlobalCount', 'Question')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -47,7 +47,7 @@ class CategoryCount:
 
 
 @dataclasses.dataclass(frozen=True)
-class CategoryGlobalCount:
+class GlobalCount:
     id: Union[int, str]
     total: int
     pending: int
