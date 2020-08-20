@@ -200,9 +200,11 @@ class Client:
         parameters = {'category': category.value}
         data = await self._fetch('api_count.php', params=parameters)
 
+        category_object = _category_objects[category.value]
         category_count = data['category_question_count']
         return CategoryCount(
-            _category_objects[category.value], category_count['total_question_count'],
+            category_object.name, category_object.id, category_object.type,
+            category_count['total_question_count'],
             category_count['total_easy_question_count'],
             category_count['total_medium_question_count'],
             category_count['total_hard_question_count']
@@ -224,7 +226,8 @@ class Client:
         overall_count = data['overall']
         global_count.append(
             GlobalCount(
-                'overall', overall_count['total_num_of_questions'],
+                'overall', None, None,
+                overall_count['total_num_of_questions'],
                 overall_count['total_num_of_pending_questions'],
                 overall_count['total_num_of_verified_questions'],
                 overall_count['total_num_of_rejected_questions']
@@ -232,13 +235,15 @@ class Client:
         )
 
         categories = data['categories']
-        for id, count in categories.items():
+        for category_id, category_count in categories.items():
+            category = _category_objects[int(category_id)]
             global_count.append(
                 GlobalCount(
-                    _category_objects[int(id)], count['total_num_of_questions'],
-                    count['total_num_of_pending_questions'],
-                    count['total_num_of_verified_questions'],
-                    count['total_num_of_rejected_questions']
+                    category.name, category.id, category.type,
+                    category_count['total_num_of_questions'],
+                    category_count['total_num_of_pending_questions'],
+                    category_count['total_num_of_verified_questions'],
+                    category_count['total_num_of_rejected_questions']
                 )
             )
 
