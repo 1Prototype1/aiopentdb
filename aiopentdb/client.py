@@ -36,40 +36,33 @@ from .objects import Category, CategoryCount, GlobalCount, Question
 
 __all__ = ('Client',)
 
-_category_enums = {
-    'General Knowledge': CategoryType.general_knowledge,
-    'Entertainment: Books': CategoryType.books,
-    'Entertainment: Film': CategoryType.film,
-    'Entertainment: Music': CategoryType.music,
-    'Entertainment: Musicals & Theatres': CategoryType.musicals_and_theatres,
-    'Entertainment: Television': CategoryType.television,
-    'Entertainment: Video Games': CategoryType.video_games,
-    'Entertainment: Board Games': CategoryType.board_games,
-    'Science & Nature': CategoryType.nature,
-    'Science: Computers': CategoryType.computers,
-    'Science: Mathematics': CategoryType.mathematics,
-    'Mythology': CategoryType.mythology,
-    'Sports': CategoryType.sports,
-    'Geography': CategoryType.geography,
-    'History': CategoryType.history,
-    'Politics': CategoryType.politics,
-    'Art': CategoryType.art,
-    'Celebrities': CategoryType.celebrities,
-    'Animals': CategoryType.animals,
-    'Vehicles': CategoryType.vehicles,
-    'Entertainment: Comics': CategoryType.comics,
-    'Science: Gadgets': CategoryType.gadgets,
-    'Entertainment: Japanese Anime & Manga': CategoryType.anime_and_manga,
-    'Entertainment: Cartoon & Animations': CategoryType.cartoon_and_animations
-}
-_category_objects = {
-    enum.value: Category(name, enum.value, enum) for name, enum in _category_enums.items()
-}
+_category_names = (
+    'General Knowledge', 'Entertainment: Books', 'Entertainment: Film', 'Entertainment: Music',
+    'Entertainment: Musicals & Theatres', 'Entertainment: Television', 'Entertainment: Video Games',
+    'Entertainment: Board Games', 'Science & Nature', 'Science: Computers', 'Science: Mathematics',
+    'Mythology', 'Sports', 'Geography', 'History', 'Politics', 'Art', 'Celebrities', 'Animals',
+    'Vehicles', 'Entertainment: Comics', 'Science: Gadgets',
+    'Entertainment: Japanese Anime & Manga', 'Entertainment: Cartoon & Animations'
+)
+_category_enums = (
+    CategoryType.general_knowledge, CategoryType.books, CategoryType.film, CategoryType.music,
+    CategoryType.musicals_and_theatres, CategoryType.television, CategoryType.video_games,
+    CategoryType.board_games, CategoryType.nature, CategoryType.computers, CategoryType.mathematics,
+    CategoryType.mythology, CategoryType.sports, CategoryType.geography, CategoryType.history,
+    CategoryType.politics, CategoryType.art, CategoryType.celebrities, CategoryType.animals,
+    CategoryType.vehicles, CategoryType.comics, CategoryType.gadgets, CategoryType.anime_and_manga,
+    CategoryType.cartoon_and_animations
+)
+_category_by_names = {}
+_category_by_ids = {}
+for _name, _enum in zip(_category_names, _category_enums):
+    _category = Category(_name, _enum.value, _enum)
+    _category_by_names[_name] = _category
+    _category_by_ids[_enum.value] = _category
 
 _decoders = {
     Encoding.url: urllib.parse.unquote, Encoding.base64: lambda s: base64.b64decode(s).decode()
 }
-
 _fields = ('category', 'correct_answer')
 _enum_fields = (('type', QuestionType), ('difficulty', Difficulty))
 
@@ -157,8 +150,7 @@ class Client:
             for index, incorrect_answer in enumerate(incorrect_answers):
                 incorrect_answers[index] = decoder(incorrect_answer)
 
-            category_enum = _category_enums[entry['category']]
-            entry['category'] = _category_objects[category_enum.value]
+            entry['category'] = _category_by_names[entry['category']]
             for field, enum in _enum_fields:
                 entry[field] = enum(decoder(entry[field]))
 
@@ -200,23 +192,23 @@ class Client:
         parameters = {'category': category.value}
         data = await self._fetch('api_count.php', params=parameters)
 
-        category_object = _category_objects[category.value]
-        category_count = data['category_question_count']
+        object = _category_by_ids[category.value]
+        count = data['category_question_count']
         return CategoryCount(
-            category_object.name, category_object.id, category_object.type,
-            category_count['total_question_count'],
-            category_count['total_easy_question_count'],
-            category_count['total_medium_question_count'],
-            category_count['total_hard_question_count']
+            object.name, object.id, object.type,
+            count['total_question_count'],
+            count['total_easy_question_count'],
+            count['total_medium_question_count'],
+            count['total_hard_question_count']
         )
 
     async def get_category_count(self, category: CategoryType) -> CategoryCount:
         if id in self.category_count:
             return self.category_count[category.value]
 
-        category_count = await self.fetch_category_count(category)
-        self.category_count[category.value] = category_count
-        return category_count
+        count = await self.fetch_category_count(category)
+        self.category_count[category.value] = count
+        return count
 
     async def fetch_global_count(self) -> List[GlobalCount]:
         data = await self._fetch('api_count_global.php')
@@ -235,15 +227,15 @@ class Client:
         )
 
         categories = data['categories']
-        for category_id, category_count in categories.items():
-            category = _category_objects[int(category_id)]
+        for id, count in categories.items():
+            category = _category_by_ids[int(id)]
             global_count.append(
                 GlobalCount(
                     category.name, category.id, category.type,
-                    category_count['total_num_of_questions'],
-                    category_count['total_num_of_pending_questions'],
-                    category_count['total_num_of_verified_questions'],
-                    category_count['total_num_of_rejected_questions']
+                    count['total_num_of_questions'],
+                    count['total_num_of_pending_questions'],
+                    count['total_num_of_verified_questions'],
+                    count['total_num_of_rejected_questions']
                 )
             )
 
