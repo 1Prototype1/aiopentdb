@@ -24,6 +24,7 @@ SOFTWARE.
 
 import asyncio
 import base64
+import collections
 import html
 import urllib.parse
 import types
@@ -33,7 +34,7 @@ import aiohttp
 import yarl
 
 from .enums import CategoryType, Encoding, Difficulty, QuestionType
-from .errors import InvalidParameter, NoResults, TokenEmpty, TokenNotFound
+from .errors import InvalidParameter, NoResults, RequestError, TokenEmpty, TokenNotFound
 from .objects import Category, CategoryCount, GlobalCount, Question
 
 __all__ = ('Client',)
@@ -127,6 +128,7 @@ class Client:
     __slots__ = (
         'session',
         '__token',
+        '__questions',
         '__categories',
         '__category_count',
         '__global_count'
@@ -141,6 +143,7 @@ class Client:
 
         self.session = session or aiohttp.ClientSession(raise_for_status=True)
         self.__token = None
+        self.__questions = collections.deque(maxlen=50)
         self.__categories = {}
         self.__category_count = {}
         self.__global_count = {}
@@ -148,6 +151,8 @@ class Client:
     async def _fetch(self, endpoint, *args, **kwargs):
         async with self.session.get(self.BASE_URL / endpoint, *args, **kwargs) as response:
             data = await response.json()
+        if data is None:
+            raise RequestError('Unable to fetch')
 
         response_code = data.pop('response_code', 0)
         if response_code != 0:
@@ -175,11 +180,9 @@ class Client:
     ) -> str:
 
         is_internal_token = token is None
-        token = token or self.__token
-
         parameters = {
             'command': 'reset',
-            'token': token
+            'token': token or self.__token
         }
         data = await self._fetch('api_token.php', params=parameters)
 
@@ -190,12 +193,16 @@ class Client:
 
     # Question
 
+    @property
+    def questions(self) -> List[Question]:
+        return list(self.__questions)
+
     async def fetch_questions(
         self,
         amount: int = 10,
-        category: Optional[CategoryType] = None,
+        category_type: Optional[CategoryType] = None,
         difficulty: Optional[Difficulty] = None,
-        type: Optional[QuestionType] = None,
+        question_type: Optional[QuestionType] = None,
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
@@ -204,17 +211,18 @@ class Client:
             raise ValueError("'amount' must be between 1 and 50")
 
         parameters = {'amount': amount}
-        if category is not None:
-            parameters['category'] = category.value
+        if category_type is not None:
+            parameters['category'] = category_type.value
         if difficulty is not None:
             parameters['difficulty'] = difficulty.value
-        if type is not None:
-            parameters['type'] = type.value
+        if question_type is not None:
+            parameters['type'] = question_type.value
         if encoding is not None:
             parameters['encode'] = encoding.value
-        if token is not None:
+        if token is None and self.__token is not None:
+            parameters['token'] = self.__token
+        else:
             parameters['token'] = token
-
         data = await self._fetch('api.php', params=parameters)
 
         questions = []
@@ -235,22 +243,62 @@ class Client:
             questions.append(Question(**entry))
         return questions
 
-    async def get_questions(
+    async def populate_questions(
+        self,
+        category_type: Optional[CategoryType] = None,
+        difficulty: Optional[Difficulty] = None,
+        question_type: Optional[QuestionType] = None,
+        encoding: Optional[Encoding] = None,
+        token: Optional[str] = None
+    ) -> None:
+
+        questions = self.__questions
+        amount = questions.maxlen - len(questions)
+        if amount < 1:
+            return
+
+        new_questions = await self.fetch_questions(
+            amount, category_type, difficulty, question_type, encoding, token
+        )
+        questions.extend(new_questions)
+
+    def get_questions(
         self,
         amount: int = 10,
-        category: Optional[CategoryType] = None,
+        category_type: Optional[CategoryType] = None,
         difficulty: Optional[Difficulty] = None,
-        type: Optional[QuestionType] = None,
-        encoding: Optional[Encoding] = None
+        question_type: Optional[QuestionType] = None,
     ) -> List[Question]:
 
-        while True:
-            try:
-                return await self.fetch_questions(
-                    amount, category, difficulty, type, encoding, self.__token
-                )
-            except TokenEmpty:
-                await self.reset_token()
+        actual_questions = self.__questions
+        retrieved_questions = []
+        count = 0
+        for question in self.questions:
+            if count >= amount:
+                break
+
+            if (
+                category_type is not None
+                and question.category.type != category_type
+            ):
+                continue
+
+            if (
+                difficulty is not None
+                and question.difficulty != difficulty
+            ):
+                continue
+
+            if (
+                question_type is not None
+                and question.type != question_type
+            ):
+                continue
+
+            actual_questions.remove(question)
+            retrieved_questions.append(question)
+            count += 1
+        return retrieved_questions
 
     # Category
 
@@ -287,15 +335,15 @@ class Client:
 
     async def fetch_category_count(
         self,
-        category: CategoryType
+        category_type: CategoryType
     ) -> CategoryCount:
 
-        parameters = {'category': category.value}
+        parameters = {'category': category_type.value}
         data = await self._fetch('api_count.php', params=parameters)
 
         count = data['category_question_count']
         return CategoryCount(
-            _category_by_ids[category.value],
+            _category_by_ids[category_type.value],
             count['total_question_count'],
             count['total_easy_question_count'],
             count['total_medium_question_count'],
@@ -304,12 +352,12 @@ class Client:
 
     async def populate_category_count(
         self,
-        category: CategoryType
+        category_type: CategoryType
     ) -> None:
 
         count = self.__category_count
-        if not count.get(category):
-            count[category] = await self.fetch_category_count(category)
+        if not count.get(category_type):
+            count[category_type] = await self.fetch_category_count(category_type)
 
     async def fetch_all_category_count(self) -> Dict[CategoryType, CategoryCount]:
         count = {}
@@ -323,10 +371,10 @@ class Client:
 
     def get_category_count(
         self,
-        category: CategoryType
+        category_type: CategoryType
     ) -> CategoryCount:
 
-        return self.__category_count.get(category)
+        return self.__category_count.get(category_type)
 
     # Global Count
 
@@ -336,7 +384,6 @@ class Client:
 
     async def fetch_global_count(self) -> Dict[Union[CategoryType, str], GlobalCount]:
         data = await self._fetch('api_count_global.php')
-
         global_count = {}
 
         overall_count = data['overall']
@@ -367,16 +414,17 @@ class Client:
 
     def get_global_count(
         self,
-        category: Union[CategoryType, str]
+        category_type: Union[CategoryType, str]
     ) -> GlobalCount:
 
-        return self.__global_count.get(category)
+        return self.__global_count.get(category_type)
 
     # Utility
 
-    async def populate(self) -> None:
+    async def populate_cache(self) -> None:
         methods = (
             self.populate_token,
+            self.populate_questions,
             self.populate_categories,
             self.populate_all_category_count,
             self.populate_global_count
