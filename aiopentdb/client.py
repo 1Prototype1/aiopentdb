@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import asyncio
 import base64
 import collections
 import html
@@ -120,10 +119,6 @@ _errors = {
 }
 
 
-async def _wait():
-    await asyncio.sleep(1)
-
-
 class Client:
     __slots__ = (
         'session',
@@ -148,6 +143,19 @@ class Client:
         self.__category_count = {}
         self.__global_count = {}
 
+    async def populate_cache(self) -> None:
+        methods = (
+            self.populate_token,
+            self.populate_questions,
+            self.populate_categories,
+            self.populate_all_category_count,
+            self.populate_global_count
+        )
+        for method in methods:
+            await method()
+
+    # Session
+
     async def _fetch(self, endpoint, *args, **kwargs):
         async with self.session.get(self.BASE_URL / endpoint, *args, **kwargs) as response:
             data = await response.json()
@@ -158,6 +166,9 @@ class Client:
         if response_code != 0:
             raise _errors[response_code]
         return data
+
+    async def close(self) -> None:
+        await self.session.close()
 
     # Token
 
@@ -418,22 +429,3 @@ class Client:
     ) -> GlobalCount:
 
         return self.__global_count.get(category_type)
-
-    # Utility
-
-    async def populate_cache(self) -> None:
-        methods = (
-            self.populate_token,
-            self.populate_questions,
-            self.populate_categories,
-            self.populate_all_category_count,
-            self.populate_global_count
-        )
-        for method in methods:
-            await method()
-            await _wait()
-
-    # Session
-
-    async def close(self) -> None:
-        await self.session.close()
