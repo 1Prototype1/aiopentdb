@@ -24,47 +24,52 @@ SOFTWARE.
 
 import enum
 
-__all__ = ('CategoryType', 'QuestionType', 'Difficulty', 'Encoding')
+__all__ = (
+    'CategoryType',
+    'QuestionType',
+    'Difficulty',
+    'Encoding'
+)
 
 
 class CategoryType(enum.Enum):
-    general_knowledge = 9
-    books = 10
-    film = 11
-    music = 12
-    musicals_and_theatres = 13
-    television = 14
-    video_games = 15
-    board_games = 16
-    nature = 17
-    computers = 18
-    mathematics = 19
-    mythology = 20
-    sports = 21
-    geography = 22
-    history = 23
-    politics = 24
-    art = 25
-    celebrities = 26
-    animals = 27
-    vehicles = 28
-    comics = 29
-    gadgets = 30
-    anime_and_manga = 31
+    general_knowledge      = 9
+    books                  = 10
+    film                   = 11
+    music                  = 12
+    musicals_and_theatres  = 13
+    television             = 14
+    video_games            = 15
+    board_games            = 16
+    nature                 = 17
+    computers              = 18
+    mathematics            = 19
+    mythology              = 20
+    sports                 = 21
+    geography              = 22
+    history                = 23
+    politics               = 24
+    art                    = 25
+    celebrities            = 26
+    animals                = 27
+    vehicles               = 28
+    comics                 = 29
+    gadgets                = 30
+    anime_and_manga        = 31
     cartoon_and_animations = 32
 
 
 class QuestionType(enum.Enum):
     multiple = 'multiple'
-    boolean = 'boolean'
+    boolean  = 'boolean'
 
 
 class Difficulty(enum.Enum):
-    easy = 'easy'
+    easy   = 'easy'
     medium = 'medium'
-    hard = 'hard'
+    hard   = 'hard'
 
 
 class Encoding(enum.Enum):
-    url = 'url3986'
+    url    = 'url3986'
     base64 = 'base64'

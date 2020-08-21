@@ -24,22 +24,28 @@ SOFTWARE.
 
 import dataclasses
 import random
-from typing import List, Optional
+from typing import List, Union
 
 from .enums import CategoryType, Difficulty, QuestionType
 
-__all__ = ('Category', 'CategoryCount', 'GlobalCount', 'Question')
+__all__ = (
+    'Category',
+    'CategoryCount',
+    'GlobalCount',
+    'Question'
+)
 
 
 @dataclasses.dataclass(frozen=True)
 class Category:
     name: str
-    id: Optional[int]
-    type: Optional[CategoryType]
+    id: int
+    type: CategoryType
 
 
 @dataclasses.dataclass(frozen=True)
-class CategoryCount(Category):
+class CategoryCount:
+    category: Category
     total: int
     easy: int
     medium: int
@@ -47,7 +53,8 @@ class CategoryCount(Category):
 
 
 @dataclasses.dataclass(frozen=True)
-class GlobalCount(Category):
+class GlobalCount:
+    category: Union[Category, str]
     total: int
     pending: int
     verified: int

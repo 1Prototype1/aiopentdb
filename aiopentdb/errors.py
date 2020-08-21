@@ -22,7 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__all__ = ('RequestError', 'NoResults', 'InvalidParameter', 'TokenNotFound', 'TokenEmpty')
+__all__ = (
+    'RequestError',
+    'NoResults',
+    'InvalidParameter',
+    'TokenNotFound',
+    'TokenEmpty'
+)
 
 
 class RequestError(Exception):
