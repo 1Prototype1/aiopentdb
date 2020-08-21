@@ -1,3 +1,3 @@
 # aiopentdb
 
-Python async API wrapper for OpenTDB
+Async Python wrapper for OpenTDB API

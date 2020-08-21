@@ -11,7 +11,7 @@ with open('requirements.txt') as requirements:
 setuptools.setup(
     name='aiopentdb',
     version=aiopentdb.__version__,
-    description='Python async API wrapper for OpenTDB',
+    description='Async Python wrapper for OpenTDB API',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/CyCanCode/aiopentdb',
