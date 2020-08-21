@@ -26,8 +26,7 @@ import base64
 import collections
 import html
 import urllib.parse
-import types
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 import yarl
@@ -120,16 +119,7 @@ _errors = {
 
 
 class Client:
-    __slots__ = (
-        'session',
-        '__token',
-        '__questions',
-        '__categories',
-        '__category_count',
-        '__global_count'
-    )
-
-    BASE_URL = yarl.URL('https://opentdb.com')
+    _BASE_URL = yarl.URL('https://opentdb.com')
 
     def __init__(
         self,
@@ -157,7 +147,7 @@ class Client:
     # Session
 
     async def _fetch(self, endpoint, *args, **kwargs):
-        async with self.session.get(self.BASE_URL / endpoint, *args, **kwargs) as response:
+        async with self.session.get(self._BASE_URL / endpoint, *args, **kwargs) as response:
             data = await response.json()
         if data is None:
             raise RequestError('Unable to fetch')
@@ -190,7 +180,6 @@ class Client:
         token: Optional[str] = None
     ) -> str:
 
-        is_internal_token = token is None
         parameters = {
             'command': 'reset',
             'token': token or self.__token
@@ -198,7 +187,7 @@ class Client:
         data = await self._fetch('api_token.php', params=parameters)
 
         new_token = data['token']
-        if is_internal_token:
+        if token is None:
             self.__token = new_token
         return new_token
 
@@ -314,8 +303,8 @@ class Client:
     # Category
 
     @property
-    def categories(self) -> Mapping[CategoryType, Category]:
-        return types.MappingProxyType(self.__categories)
+    def categories(self) -> List[Category]:
+        return list(self.__categories.values())
 
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
         data = await self._fetch('api_category.php')
@@ -341,8 +330,8 @@ class Client:
     # Category Count
 
     @property
-    def category_count(self) -> Mapping[CategoryType, CategoryCount]:
-        return types.MappingProxyType(self.__category_count)
+    def category_count(self) -> List[CategoryCount]:
+        return list(self.__category_count.values())
 
     async def fetch_category_count(
         self,
@@ -390,8 +379,8 @@ class Client:
     # Global Count
 
     @property
-    def global_count(self) -> Mapping[Union[CategoryType, str], GlobalCount]:
-        return types.MappingProxyType(self.__global_count)
+    def global_count(self) -> List[GlobalCount]:
+        return list(self.__global_count.values())
 
     async def fetch_global_count(self) -> Dict[Union[CategoryType, str], GlobalCount]:
         data = await self._fetch('api_count_global.php')
