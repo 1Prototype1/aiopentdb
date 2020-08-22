@@ -33,7 +33,7 @@ import yarl
 
 from .enums import CategoryType, Encoding, Difficulty, QuestionType
 from .errors import InvalidParameter, NoResults, RequestError, TokenEmpty, TokenNotFound
-from .objects import Category, CategoryCount, GlobalCount, Question
+from .objects import Category, Count, GlobalCount, Question
 
 __all__ = ('Client',)
 
@@ -143,8 +143,8 @@ class Client:
         self.__token = None
         self.__questions = collections.deque(maxlen=50)
         self.__categories = {}
-        self.__category_count = {}
-        self.__global_count = {}
+        self.__counts = {}
+        self.__global_counts = {}
 
     async def populate_cache(self) -> None:
         """Populates the internal cache."""
@@ -153,8 +153,8 @@ class Client:
             self.populate_token,
             self.populate_questions,
             self.populate_categories,
-            self.populate_all_category_count,
-            self.populate_global_count
+            self.populate_counts,
+            self.populate_global_counts
         )
         for method in methods:
             await method()
@@ -468,25 +468,25 @@ class Client:
 
         return self.__categories.get(category_type)
 
-    # Category Count
+    # Count
 
     @property
-    def category_count(self) -> List[CategoryCount]:
-        """List of cached category's question count.
+    def counts(self) -> List[Count]:
+        """List of cached counts.
 
         Returns
         ----------
-        `List[CategoryCount]`
-            List of cached category's question count.
+        `List[Count]`
+            List of cached counts.
         """
 
-        return list(self.__category_count.values())
+        return list(self.__counts.values())
 
-    async def fetch_category_count(
+    async def fetch_count(
         self,
         category_type: CategoryType
-    ) -> CategoryCount:
-        """Fetches a category's question count.
+    ) -> Count:
+        """Fetches a count.
 
         Parameters
         ----------
@@ -495,15 +495,15 @@ class Client:
 
         Returns
         ----------
-        `CategoryCount`
-            Fetched category's question count.
+        `Count`
+            Fetched count.
         """
 
         parameters = {'category': category_type.value}
         data = await self._fetch('api_count.php', params=parameters)
 
         count = data['category_question_count']
-        return CategoryCount(
+        return Count(
             _category_by_ids[category_type.value],
             count['total_question_count'],
             count['total_easy_question_count'],
@@ -511,11 +511,11 @@ class Client:
             count['total_hard_question_count']
         )
 
-    async def populate_category_count(
+    async def populate_count(
         self,
         category_type: CategoryType
     ) -> None:
-        """Populates the internal category's question count.
+        """Populates the internal count cache.
 
         Parameters
         ----------
@@ -523,35 +523,35 @@ class Client:
             Type of category to populate.
         """
 
-        count = self.__category_count
+        count = self.__counts
         if not count.get(category_type):
-            count[category_type] = await self.fetch_category_count(category_type)
+            count[category_type] = await self.fetch_count(category_type)
 
-    async def fetch_all_category_count(self) -> Dict[CategoryType, CategoryCount]:
-        """Fetches all category's question count.
+    async def fetch_counts(self) -> Dict[CategoryType, Count]:
+        """Fetches all counts.
 
         Returns
         ----------
-        `Dict[CategoryType, CategoryCount]`
-            Dict of fetched category's question count.
+        `Dict[CategoryType, Count]`
+            Dict of fetched counts.
         """
 
         count = {}
         for enum in _category_enums:
-            count[enum] = await self.fetch_category_count(enum)
+            count[enum] = await self.fetch_count(enum)
         return count
 
-    async def populate_all_category_count(self) -> None:
-        """Populates all of the the internal category's question count."""
+    async def populate_counts(self) -> None:
+        """Populates all of the the internal count cache."""
 
-        if not self.__category_count:
-            self.__category_count = await self.fetch_all_category_count()
+        if not self.__counts:
+            self.__counts = await self.fetch_counts()
 
-    def get_category_count(
+    def get_count(
         self,
         category_type: CategoryType
-    ) -> Optional[CategoryCount]:
-        """Retrieves a category's question count from the internal cache.
+    ) -> Optional[Count]:
+        """Retrieves a count from the internal cache.
 
         Parameters
         ----------
@@ -560,33 +560,33 @@ class Client:
 
         Returns
         ----------
-        `Optional[CategoryCount]`
-            Cached category question's count.
+        `Optional[Count]`
+            Cached count.
         """
 
-        return self.__category_count.get(category_type)
+        return self.__counts.get(category_type)
 
     # Global Count
 
     @property
-    def global_count(self) -> List[GlobalCount]:
-        """List of cached global category's question count.
+    def global_counts(self) -> List[GlobalCount]:
+        """List of cached global counts.
 
         Returns
         ----------
         `List[GlobalCount]`
-            List of cached global category's question count.
+            List of cached global counts.
         """
 
-        return list(self.__global_count.values())
+        return list(self.__global_counts.values())
 
-    async def fetch_global_count(self) -> Dict[Union[CategoryType, str], GlobalCount]:
-        """Fetches all global category's question count.
+    async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
+        """Fetches all global counts.
 
         Returns
         ----------
         `Dict[Union[CategoryType, str], GlobalCount]`
-            Dict of fetched global category's question count.
+            Dict of fetched global counts.
         """
 
         data = await self._fetch('api_count_global.php')
@@ -614,17 +614,17 @@ class Client:
 
         return global_count
 
-    async def populate_global_count(self) -> None:
-        """Populates the internal global category's question count cache."""
+    async def populate_global_counts(self) -> None:
+        """Populates the internal global count cache."""
 
-        if not self.__global_count:
-            self.__global_count = await self.fetch_global_count()
+        if not self.__global_counts:
+            self.__global_counts = await self.fetch_global_counts()
 
     def get_global_count(
         self,
         category_type: Union[CategoryType, str]
     ) -> Optional[GlobalCount]:
-        """Retrieves a global category's question count from the internal cache.
+        """Retrieves a global count from the internal cache.
 
         Parameters
         ----------
@@ -634,7 +634,7 @@ class Client:
         Returns
         ----------
         `Optional[GlobalCount]`
-            Cached global category's question count.
+            Cached global count.
         """
 
-        return self.__global_count.get(category_type)
+        return self.__global_counts.get(category_type)

@@ -30,7 +30,7 @@ from .enums import CategoryType, Difficulty, QuestionType
 
 __all__ = (
     'Category',
-    'CategoryCount',
+    'Count',
     'GlobalCount',
     'Question'
 )
@@ -56,7 +56,7 @@ class Category:
 
 
 @dataclasses.dataclass(frozen=True)
-class CategoryCount:
+class Count:
     """Represents a category's question count.
 
     Attributes

@@ -1,4 +1,3 @@
 __pycache__
 /.venv
 /.vscode
-/aiopentdb/__main__.py
