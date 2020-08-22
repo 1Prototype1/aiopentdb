@@ -261,8 +261,7 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
-        """
-        Fetches a list of new questions.
+        """Fetches a list of new questions.
 
         Parameters
         ----------
