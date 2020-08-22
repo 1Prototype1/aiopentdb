@@ -1,9 +1,8 @@
+# aiopentdb
 
 ![GitHub](https://img.shields.io/github/license/CyCanCode/aiopentdb?color=blue)
 ![Python](https://img.shields.io/badge/python-3.7%20%7C%203.8-blue)
 ![PyPI](https://img.shields.io/pypi/v/aiopentdb?color=blue)
-
-# aiopentdb
 
 Async Python wrapper for OpenTDB API
 
