@@ -130,6 +130,16 @@ class Client:
     ----------
     session: `aiohttp.ClientSession`
         Session to use for HTTP requests.
+    token: `Optional[str]`
+        Current session token.
+    questions: `List[Question]`
+        List of cached questions.
+    categories: `List[Category]`
+        List of cached categories.
+    counts: `List[Count]`
+        List of cached counts.
+    global_counts: `List[GlobalCount]`
+        List of cached global counts.
     """
 
     _BASE_URL = yarl.URL('https://opentdb.com')
@@ -181,14 +191,6 @@ class Client:
 
     @property
     def token(self) -> Optional[str]:
-        """Current session token.
-
-        Returns
-        ----------
-        `Optional[str]`
-            Current session token.
-        """
-
         return self.__token
 
     async def fetch_token(self) -> str:
@@ -242,14 +244,6 @@ class Client:
 
     @property
     def questions(self) -> List[Question]:
-        """List of cached questions.
-
-        Returns
-        ----------
-        `List[Question]`
-            List of cached questions.
-        """
-
         return list(self.__questions)
 
     async def fetch_questions(
@@ -415,14 +409,6 @@ class Client:
 
     @property
     def categories(self) -> List[Category]:
-        """List of cached categories.
-
-        Returns
-        ----------
-        `List[Category]`
-            List of cached categories.
-        """
-
         return list(self.__categories.values())
 
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
@@ -472,14 +458,6 @@ class Client:
 
     @property
     def counts(self) -> List[Count]:
-        """List of cached counts.
-
-        Returns
-        ----------
-        `List[Count]`
-            List of cached counts.
-        """
-
         return list(self.__counts.values())
 
     async def fetch_count(
@@ -570,14 +548,6 @@ class Client:
 
     @property
     def global_counts(self) -> List[GlobalCount]:
-        """List of cached global counts.
-
-        Returns
-        ----------
-        `List[GlobalCount]`
-            List of cached global counts.
-        """
-
         return list(self.__global_counts.values())
 
     async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:

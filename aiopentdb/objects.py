@@ -123,6 +123,8 @@ class Question:
         Correct answer for the question.
     incorrect_answers: `List[str]`
         List of incorrect answers for the question.
+    mixed_answers: `List[str]`
+        List of combined answers.
     """
 
     type: QuestionType
@@ -134,14 +136,6 @@ class Question:
 
     @property
     def mixed_answers(self) -> List[str]:
-        """List of combined answers.
-
-        Returns
-        ----------
-        `List[str]`
-            List of combined answers.
-        """
-
         answers = [self.correct_answer, *self.incorrect_answers]
         random.shuffle(answers)
         return answers
