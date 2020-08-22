@@ -261,18 +261,18 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
-        """Fetches a list of new questions.
+        """Fetches new questions.
 
         Parameters
         ----------
         amount: `int`
             Amount of question to fetch. Must be between 1 and 50. Defaults to 10.
         category_type: `Optional[CategoryType]`
-            Question's category type to fetch.
+            Type of question's category to fetch.
         difficulty: `Optional[Difficulty]`
-            Question's difficulty to fetch.
+            Difficulty of question to fetch.
         question_type: `Optional[QuestionType]`
-            Question type to fetch.
+            Type of question to fetch.
         encoding: `Optional[Encoding]`
             Encoding of response to be used when fetching.
         token: `Optional[str]`
@@ -333,15 +333,15 @@ class Client:
         Parameters
         ----------
         category_type: `Optional[CategoryType]`
-            Question's category type to populate.
+            Type of question's category to fetch.
         difficulty: `Optional[Difficulty]`
-            Question's difficulty to populate.
+            Difficulty of question to fetch.
         question_type: `Optional[QuestionType]`
-            Question type to populate.
+            Type of question to fetch.
         encoding: `Optional[Encoding]`
-            Encoding of response to be used when populating.
+            Encoding of response to be used when fetching.
         token: `Optional[str]`
-            Session token to be used when populating.
+            Session token to be used when fetching.
         """
 
         questions = self.__questions
@@ -367,13 +367,13 @@ class Client:
         Parameters
         ----------
         amount: `int`
-            Amount of question to retrieve. Must be between 1 and 50. Defaults to 10.
+            Amount of question to fetch. Must be between 1 and 50. Defaults to 10.
         category_type: `Optional[CategoryType]`
-            Question's category type to retrieve.
+            Type of question's category to fetch.
         difficulty: `Optional[Difficulty]`
-            Question's difficulty to retrieve.
+            Difficulty of question to fetch.
         question_type: `Optional[QuestionType]`
-            Question type to retrieve.
+            Type of question to fetch.
 
         Returns
         ----------
@@ -451,14 +451,14 @@ class Client:
 
     def get_category(
         self,
-        type: CategoryType
+        category_type: CategoryType
     ) -> Optional[Category]:
         """Retrieves a category from the internal cache.
 
         Parameters
         ----------
-        type: `CategoryType`
-            Category type to retrieve.
+        category_type: `CategoryType`
+            Type of category to retrieve.
 
         Returns
         ----------
@@ -466,18 +466,18 @@ class Client:
             Cached category.
         """
 
-        return self.__categories.get(type)
+        return self.__categories.get(category_type)
 
     # Category Count
 
     @property
     def category_count(self) -> List[CategoryCount]:
-        """List of cached category count.
+        """List of cached category's question count.
 
         Returns
         ----------
         `List[CategoryCount]`
-            List of cached category count.
+            List of cached category's question count.
         """
 
         return list(self.__category_count.values())
@@ -491,7 +491,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Category type to fetch.
+            Type of category to fetch.
 
         Returns
         ----------
@@ -520,7 +520,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Category type to populate.
+            Type of category to populate.
         """
 
         count = self.__category_count
@@ -556,7 +556,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Category type to retrieve.
+            Type of category to retrieve.
 
         Returns
         ----------
@@ -629,7 +629,7 @@ class Client:
         Parameters
         ----------
         category_type: `Union[CategoryType, str]`
-            Category type to retrieve.
+            Type category to retrieve.
 
         Returns
         ----------
