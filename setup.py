@@ -8,6 +8,22 @@ with open('README.md') as readme:
 with open('requirements.txt') as requirements:
     install_requires = requirements.readline()
 
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Topic :: Software Development :: Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: Utilities'
+]
+
+project_urls = {
+    'Source': 'https://github.com/CyCanCode/aiopentdb',
+    'Tracker': 'https://github.com/CyCanCode/aiopentdb/issues'
+}
+
 setuptools.setup(
     name='aiopentdb',
     version=aiopentdb.__version__,
@@ -17,10 +33,10 @@ setuptools.setup(
     url='https://github.com/CyCanCode/aiopentdb',
     author='CyCanCode',
     license='MIT',
-    classifiers=[],     # TODO
-    keywords='',        # TODO
-    project_urls={},    # TODO
+    classifiers=classifiers,
+    keywords='opentdb aiopentdb',
+    project_urls=project_urls,
     packages=['aiopentdb'],
     install_requires=install_requires,
-    python_requires=''  # TODO
+    python_requires='~=3.7'
 )
