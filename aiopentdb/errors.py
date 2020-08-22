@@ -32,25 +32,33 @@ __all__ = (
 
 
 class RequestError(Exception):
-    ...
+    """Base error class."""
 
 
 class NoResults(RequestError):
+    """Error raised when the API could not return results."""
+
     def __init__(self) -> None:
         super().__init__('Could not return results')
 
 
 class InvalidParameter(RequestError):
+    """Error raised when the arguments passed are invalid."""
+
     def __init__(self) -> None:
         super().__init__('Arguments passed are invalid')
 
 
 class TokenNotFound(RequestError):
+    """Error raised when the session token does not exist."""
+
     def __init__(self) -> None:
         super().__init__('Session Token does not exist')
 
 
 class TokenEmpty(RequestError):
+    """Error raised when the session token is empty."""
+
     def __init__(self) -> None:
         super().__init__(
             'Session Token has returned all possible questions for the specified query'

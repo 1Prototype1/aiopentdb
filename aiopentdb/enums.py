@@ -33,6 +33,8 @@ __all__ = (
 
 
 class CategoryType(enum.Enum):
+    """Represents a category type."""
+
     general_knowledge      = 9
     books                  = 10
     film                   = 11
@@ -60,16 +62,22 @@ class CategoryType(enum.Enum):
 
 
 class QuestionType(enum.Enum):
+    """Represents a question type."""
+
     multiple = 'multiple'
     boolean  = 'boolean'
 
 
 class Difficulty(enum.Enum):
+    """Represents a question's difficulty."""
+
     easy   = 'easy'
     medium = 'medium'
     hard   = 'hard'
 
 
 class Encoding(enum.Enum):
+    """Represents an encoding type."""
+
     url    = 'url3986'
     base64 = 'base64'

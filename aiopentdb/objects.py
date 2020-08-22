@@ -38,6 +38,18 @@ __all__ = (
 
 @dataclasses.dataclass(frozen=True)
 class Category:
+    """Represents a category.
+
+    Attributes
+    ----------
+    name: `str`
+        Name of the category.
+    id: `int`
+        ID of the category.
+    type: `CategoryType`
+        Type of the category.
+    """
+
     name: str
     id: int
     type: CategoryType
@@ -45,6 +57,22 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class CategoryCount:
+    """Represents a category's question count.
+
+    Attributes
+    ----------
+    category: `Category`
+        Category that owns this count.
+    total: `int`
+        Total question count.
+    easy: `int`
+        Easy question count.
+    medium: `int`
+        Medium question count.
+    hard: `int`
+        Hard question count.
+    """
+
     category: Category
     total: int
     easy: int
@@ -54,6 +82,22 @@ class CategoryCount:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
+    """Represents a global category's question count.
+
+    Attributes
+    ----------
+    category: `Union[Category, str]`
+        Category that owns this count.
+    total: `int`
+        Total question count.
+    pending: `int`
+        Pending question count.
+    verified: `int`
+        Verified question count.
+    rejected: `int`
+        Rejected question count.
+    """
+
     category: Union[Category, str]
     total: int
     pending: int
@@ -63,6 +107,24 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
+    """Represents a question.
+
+    Attributes
+    ----------
+    type: `QuestionType`
+        Type of the question.
+    category: `Category`
+        Category of the question.
+    difficulty: `Difficulty`
+        Difficulty of the question.
+    content: `str`
+        Content of the question.
+    correct_answer: `str`
+        Correct answer for the question.
+    incorrect_answers: `List[str]`
+        List of incorrect answers for the question.
+    """
+
     type: QuestionType
     category: Category
     difficulty: Difficulty
@@ -72,6 +134,14 @@ class Question:
 
     @property
     def mixed_answers(self) -> List[str]:
+        """List of combined answers.
+
+        Returns
+        ----------
+        `List[str]`
+            List of combined answers.
+        """
+
         answers = [self.correct_answer, *self.incorrect_answers]
         random.shuffle(answers)
         return answers
