@@ -99,7 +99,7 @@ for _name, _enum in zip(_category_names, _category_enums):
 
 _decoders = {
     Encoding.url: urllib.parse.unquote,
-    Encoding.base64: lambda s: base64.b64decode(s).decode()
+    Encoding.base64: lambda decodable: base64.b64decode(decodable).decode()
 }
 _fields = (
     'category',
@@ -124,12 +124,13 @@ class Client:
     Parameters
     ----------
     session: `Optional[aiohttp.ClientSession]`
-        Session to use for HTTP requests. If not set, a new session will be created instead.
+        Session to be used for all HTTP requests.
+        If not set, a new session will be created instead.
 
     Attributes
     ----------
     session: `aiohttp.ClientSession`
-        Session to use for HTTP requests.
+        Session to be used for all HTTP requests.
     token: `Optional[str]`
         Current session token.
     questions: `List[Question]`
@@ -144,17 +145,13 @@ class Client:
 
     _BASE_URL = yarl.URL('https://opentdb.com')
 
-    def __init__(
-        self,
-        session: Optional[aiohttp.ClientSession] = None
-    ) -> None:
-
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
         self.session = session or aiohttp.ClientSession(raise_for_status=True)
-        self.__token = None
-        self.__questions = collections.deque(maxlen=50)
-        self.__categories = {}
-        self.__counts = {}
-        self.__global_counts = {}
+        self._token = None
+        self._questions = collections.deque(maxlen=50)
+        self._categories = {}
+        self._counts = {}
+        self._global_counts = {}
 
     async def populate_cache(self) -> None:
         """Populates the internal cache."""
@@ -191,7 +188,7 @@ class Client:
 
     @property
     def token(self) -> Optional[str]:
-        return self.__token
+        return self._token
 
     async def fetch_token(self) -> str:
         """Fetches a new session token.
@@ -207,21 +204,20 @@ class Client:
         return data['token']
 
     async def populate_token(self) -> None:
-        """Populates the internal token."""
+        """Populates the internal session token."""
 
-        if self.__token is None:
-            self.__token = await self.fetch_token()
+        if self._token is None:
+            self._token = await self.fetch_token()
 
-    async def reset_token(
-        self,
-        token: Optional[str] = None
-    ) -> str:
+    async def reset_token(self, token: Optional[str] = None) -> str:
         """Resets a session token.
 
         Parameters
         ----------
         token: `Optional[str]`
-            Session token to reset. If not set, the internal session token will be used instead.
+            Session token to reset.
+            If not set, the internal session token will be used and replaced by the new session
+            token.
 
         Returns
         ----------
@@ -231,20 +227,20 @@ class Client:
 
         parameters = {
             'command': 'reset',
-            'token': token or self.__token
+            'token': token or self._token
         }
         data = await self._fetch('api_token.php', params=parameters)
 
         new_token = data['token']
         if token is None:
-            self.__token = new_token
+            self._token = new_token
         return new_token
 
     # Question
 
     @property
     def questions(self) -> List[Question]:
-        return list(self.__questions)
+        return list(self._questions)
 
     async def fetch_questions(
         self,
@@ -255,27 +251,29 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
-        """Fetches new questions.
+        """Fetches questions.
 
         Parameters
         ----------
         amount: `int`
-            Amount of question to fetch. Must be between 1 and 50. Defaults to 10.
+            Amount of question to fetch.
+            Must be between 1 and 50.
+            Defaults to 10.
         category_type: `Optional[CategoryType]`
-            Type of question's category to fetch.
+            Type of the question category to fetch.
         difficulty: `Optional[Difficulty]`
-            Difficulty of question to fetch.
+            Difficulty of the question to fetch.
         question_type: `Optional[QuestionType]`
-            Type of question to fetch.
+            Type of the question to fetch.
         encoding: `Optional[Encoding]`
-            Encoding of response to be used when fetching.
+            Encoding of the response to be used for fetching.
         token: `Optional[str]`
-            Session token to be used when fetching.
+            Session token to be used for fetching.
 
         Returns
         ----------
         `List[Question]`
-            List of new questions.
+            List of questions.
         """
 
         if amount < 1 and amount > 50:
@@ -290,8 +288,8 @@ class Client:
             parameters['type'] = question_type.value
         if encoding is not None:
             parameters['encode'] = encoding.value
-        if token is None and self.__token is not None:
-            parameters['token'] = self.__token
+        if token is None and self._token is not None:
+            parameters['token'] = self._token
         else:
             parameters['token'] = token
         data = await self._fetch('api.php', params=parameters)
@@ -327,18 +325,18 @@ class Client:
         Parameters
         ----------
         category_type: `Optional[CategoryType]`
-            Type of question's category to fetch.
+            Type of the question category to populate.
         difficulty: `Optional[Difficulty]`
-            Difficulty of question to fetch.
+            Difficulty of the question to populate.
         question_type: `Optional[QuestionType]`
-            Type of question to fetch.
+            Type of the question to populate.
         encoding: `Optional[Encoding]`
-            Encoding of response to be used when fetching.
+            Encoding of the response to be used for populating.
         token: `Optional[str]`
-            Session token to be used when fetching.
+            Session token to be used for populating.
         """
 
-        questions = self.__questions
+        questions = self._questions
         amount = questions.maxlen - len(questions)
         if amount < 1:
             return
@@ -356,18 +354,20 @@ class Client:
         question_type: Optional[QuestionType] = None,
     ) -> List[Question]:
         """Retrieves questions from the internal cache. This method also removes
-        retrieved questions from the cache, allowing new questions to be cached.
+        retrieved questions from the cache.
 
         Parameters
         ----------
         amount: `int`
-            Amount of question to fetch. Must be between 1 and 50. Defaults to 10.
+            Amount of question to retrieve.
+            Must be between 1 and 50.
+            Defaults to 10.
         category_type: `Optional[CategoryType]`
-            Type of question's category to fetch.
+            Type of the question category to retrieve.
         difficulty: `Optional[Difficulty]`
-            Difficulty of question to fetch.
+            Difficulty of the question to retrieve.
         question_type: `Optional[QuestionType]`
-            Type of question to fetch.
+            Type of the question to retrieve.
 
         Returns
         ----------
@@ -375,7 +375,7 @@ class Client:
             List of cached questions.
         """
 
-        actual_questions = self.__questions
+        actual_questions = self._questions
         retrieved_questions = []
         count = 0
         for question in self.questions:
@@ -409,7 +409,7 @@ class Client:
 
     @property
     def categories(self) -> List[Category]:
-        return list(self.__categories.values())
+        return list(self._categories.values())
 
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
         """Fetches all categories.
@@ -432,8 +432,8 @@ class Client:
     async def populate_categories(self) -> None:
         """Populates the internal category cache."""
 
-        if not self.__categories:
-            self.__categories = await self.fetch_categories()
+        if not self._categories:
+            self._categories = await self.fetch_categories()
 
     def get_category(
         self,
@@ -444,7 +444,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Type of category to retrieve.
+            Type of the category to retrieve.
 
         Returns
         ----------
@@ -452,13 +452,13 @@ class Client:
             Cached category.
         """
 
-        return self.__categories.get(category_type)
+        return self._categories.get(category_type)
 
     # Count
 
     @property
     def counts(self) -> List[Count]:
-        return list(self.__counts.values())
+        return list(self._counts.values())
 
     async def fetch_count(
         self,
@@ -469,7 +469,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Type of category to fetch.
+            Type of the category to fetch.
 
         Returns
         ----------
@@ -498,10 +498,10 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Type of category to populate.
+            Type of the category to populate.
         """
 
-        count = self.__counts
+        count = self._counts
         if not count.get(category_type):
             count[category_type] = await self.fetch_count(category_type)
 
@@ -522,8 +522,8 @@ class Client:
     async def populate_counts(self) -> None:
         """Populates all of the the internal count cache."""
 
-        if not self.__counts:
-            self.__counts = await self.fetch_counts()
+        if not self._counts:
+            self._counts = await self.fetch_counts()
 
     def get_count(
         self,
@@ -534,7 +534,7 @@ class Client:
         Parameters
         ----------
         category_type: `CategoryType`
-            Type of category to retrieve.
+            Type of the category to retrieve.
 
         Returns
         ----------
@@ -542,13 +542,13 @@ class Client:
             Cached count.
         """
 
-        return self.__counts.get(category_type)
+        return self._counts.get(category_type)
 
     # Global Count
 
     @property
     def global_counts(self) -> List[GlobalCount]:
-        return list(self.__global_counts.values())
+        return list(self._global_counts.values())
 
     async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
         """Fetches all global counts.
@@ -587,8 +587,8 @@ class Client:
     async def populate_global_counts(self) -> None:
         """Populates the internal global count cache."""
 
-        if not self.__global_counts:
-            self.__global_counts = await self.fetch_global_counts()
+        if not self._global_counts:
+            self._global_counts = await self.fetch_global_counts()
 
     def get_global_count(
         self,
@@ -599,7 +599,7 @@ class Client:
         Parameters
         ----------
         category_type: `Union[CategoryType, str]`
-            Type category to retrieve.
+            Type of the category to retrieve.
 
         Returns
         ----------
@@ -607,4 +607,4 @@ class Client:
             Cached global count.
         """
 
-        return self.__global_counts.get(category_type)
+        return self._global_counts.get(category_type)

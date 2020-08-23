@@ -38,16 +38,16 @@ __all__ = (
 
 @dataclasses.dataclass(frozen=True)
 class Category:
-    """Represents a category.
+    """Represents an OpenTDB category object.
 
     Attributes
     ----------
     name: `str`
-        Name of the category.
+        Name of the category object.
     id: `int`
-        ID of the category.
+        ID of the category object.
     type: `CategoryType`
-        Type of the category.
+        Type of the category object.
     """
 
     name: str
@@ -57,12 +57,12 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class Count:
-    """Represents a category's question count.
+    """Represents an OpenTDB count object.
 
     Attributes
     ----------
     category: `Category`
-        Category that owns this count.
+        Category that owns the count object.
     total: `int`
         Total question count.
     easy: `int`
@@ -82,12 +82,12 @@ class Count:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    """Represents a global category's question count.
+    """Represents an OpenTDB global count object.
 
     Attributes
     ----------
     category: `Union[Category, str]`
-        Category that owns this count.
+        Category that owns the global count object.
     total: `int`
         Total question count.
     pending: `int`
@@ -107,24 +107,24 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
-    """Represents a question.
+    """Represents an OpenTDB question object.
 
     Attributes
     ----------
     type: `QuestionType`
-        Type of the question.
+        Type of the question object.
     category: `Category`
-        Category of the question.
+        Category of the question object.
     difficulty: `Difficulty`
-        Difficulty of the question.
+        Difficulty of the question object.
     content: `str`
-        Content of the question.
+        Content of the question object.
     correct_answer: `str`
-        Correct answer for the question.
+        Correct answer for the question content.
     incorrect_answers: `List[str]`
-        List of incorrect answers for the question.
+        List of incorrect answers.
     mixed_answers: `List[str]`
-        List of combined answers.
+        List of mixed answers.
     """
 
     type: QuestionType

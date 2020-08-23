@@ -33,7 +33,7 @@ __all__ = (
 
 
 class CategoryType(enum.Enum):
-    """Represents a category type."""
+    """Represents an OpenTDB category object type."""
 
     general_knowledge      = 9
     books                  = 10
@@ -62,14 +62,14 @@ class CategoryType(enum.Enum):
 
 
 class QuestionType(enum.Enum):
-    """Represents a question type."""
+    """Represents an OpenTDB question object type."""
 
     multiple = 'multiple'
     boolean  = 'boolean'
 
 
 class Difficulty(enum.Enum):
-    """Represents a question's difficulty."""
+    """Represents an OpenTDB question object difficulty."""
 
     easy   = 'easy'
     medium = 'medium'
@@ -77,7 +77,7 @@ class Difficulty(enum.Enum):
 
 
 class Encoding(enum.Enum):
-    """Represents an encoding type."""
+    """Represents an OpenTDB encoding."""
 
     url    = 'url3986'
     base64 = 'base64'
