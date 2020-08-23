@@ -43,7 +43,7 @@ async def main():
     client = Client()
     try:
         await client.populate_questions()
-        questions = client.get_questions(difficulty=Difficulty.easy
+        questions = client.get_questions(difficulty=Difficulty.easy)
         # do something...
     finally:
         await client.close()
