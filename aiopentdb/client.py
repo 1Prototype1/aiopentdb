@@ -119,7 +119,7 @@ _errors = {
 
 
 class Client:
-    """Represents an OpenTDB client.
+    """Class for interacting with OpenTDB API.
 
     Parameters
     ----------
