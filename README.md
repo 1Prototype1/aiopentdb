@@ -47,4 +47,4 @@ async def main():
 asyncio.run(main())
 ```
 
-Look at [examples](examples) directory for more examples.
+Look at the examples directory for more examples.
