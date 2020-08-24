@@ -288,8 +288,9 @@ class Client:
             parameters['type'] = question_type.value
         if encoding is not None:
             parameters['encode'] = encoding.value
-        if token is None and self._token is not None:
-            parameters['token'] = self._token
+        if token is None:
+            if self._token is not None:
+                parameters['token'] = self._token
         else:
             parameters['token'] = token
         data = await self._fetch('api.php', params=parameters)
