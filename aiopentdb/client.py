@@ -119,18 +119,18 @@ _errors = {
 
 
 class Client:
-    """Class for interacting with OpenTDB API.
+    """Class for interacting with OpenTDB API and handling caches.
 
     Parameters
     ----------
     session: `Optional[aiohttp.ClientSession]`
-        Session to be used for all HTTP requests.
-        If not set, a new session will be created instead.
+        Session to use for all HTTP requests.
+        Defaults to `aiohttp.ClientSession(raise_for_status=True)`.
 
     Attributes
     ----------
     session: `aiohttp.ClientSession`
-        Session to be used for all HTTP requests.
+        Session to use for all HTTP requests.
     token: `Optional[str]`
         Current session token.
     questions: `List[Question]`
@@ -146,7 +146,7 @@ class Client:
     _BASE_URL = yarl.URL('https://opentdb.com')
 
     def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
-        self.session = session or aiohttp.ClientSession(raise_for_status=True)
+        self.session: aiohttp.ClientSession = session or aiohttp.ClientSession(raise_for_status=True)
         self._token = None
         self._questions = collections.deque(maxlen=50)
         self._categories = {}
@@ -154,7 +154,7 @@ class Client:
         self._global_counts = {}
 
     async def populate_cache(self) -> None:
-        """Populates the internal cache."""
+        """Populates all internal caches."""
 
         methods = (
             self.populate_token,
@@ -216,8 +216,7 @@ class Client:
         ----------
         token: `Optional[str]`
             Session token to reset.
-            If not set, the internal session token will be used and replaced by the new session
-            token.
+            If not set, defaults to `self.token` and it will be replaced by the new session token.
 
         Returns
         ----------
@@ -257,8 +256,8 @@ class Client:
         ----------
         amount: `int`
             Amount of question to fetch.
-            Must be between 1 and 50.
-            Defaults to 10.
+            Must be between `1` and `50`.
+            Defaults to `10`.
         category_type: `Optional[CategoryType]`
             Type of the question category to fetch.
         difficulty: `Optional[Difficulty]`
@@ -266,9 +265,9 @@ class Client:
         question_type: `Optional[QuestionType]`
             Type of the question to fetch.
         encoding: `Optional[Encoding]`
-            Encoding of the response to be used for fetching.
+            Encoding of the response to use when fetching.
         token: `Optional[str]`
-            Session token to be used for fetching.
+            Session token to use when fetching.
 
         Returns
         ----------
@@ -326,15 +325,15 @@ class Client:
         Parameters
         ----------
         category_type: `Optional[CategoryType]`
-            Type of the question category to populate.
+            Type of the question category to fetch.
         difficulty: `Optional[Difficulty]`
-            Difficulty of the question to populate.
+            Difficulty of the question to fetch.
         question_type: `Optional[QuestionType]`
-            Type of the question to populate.
+            Type of the question to fetch.
         encoding: `Optional[Encoding]`
-            Encoding of the response to be used for populating.
+            Encoding of the response to use when fetching.
         token: `Optional[str]`
-            Session token to be used for populating.
+            Session token to use when fetching.
         """
 
         questions = self._questions
@@ -354,21 +353,20 @@ class Client:
         difficulty: Optional[Difficulty] = None,
         question_type: Optional[QuestionType] = None,
     ) -> List[Question]:
-        """Retrieves questions from the internal cache. This method also removes
-        retrieved questions from the cache.
+        """Retrieves questions from the internal cache. This also removes them from the cache.
 
         Parameters
         ----------
         amount: `int`
-            Amount of question to retrieve.
-            Must be between 1 and 50.
-            Defaults to 10.
+            Amount of question to fetch.
+            Must be between `1` and `50`.
+            Defaults to `10`.
         category_type: `Optional[CategoryType]`
-            Type of the question category to retrieve.
+            Type of the question category to fetch.
         difficulty: `Optional[Difficulty]`
-            Difficulty of the question to retrieve.
+            Difficulty of the question to fetch.
         question_type: `Optional[QuestionType]`
-            Type of the question to retrieve.
+            Type of the question to fetch.
 
         Returns
         ----------
@@ -521,7 +519,7 @@ class Client:
         return count
 
     async def populate_counts(self) -> None:
-        """Populates all of the the internal count cache."""
+        """Populates all internal count caches."""
 
         if not self._counts:
             self._counts = await self.fetch_counts()

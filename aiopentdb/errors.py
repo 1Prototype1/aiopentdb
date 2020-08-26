@@ -32,7 +32,7 @@ __all__ = (
 
 
 class RequestError(Exception):
-    """Base error class for all HTTP request errors."""
+    """Base error class for all HTTP request related errors."""
 
 
 class NoResults(RequestError):

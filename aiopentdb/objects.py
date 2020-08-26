@@ -38,7 +38,8 @@ __all__ = (
 
 @dataclasses.dataclass(frozen=True)
 class Category:
-    """Represents an OpenTDB category object.
+    """Dataclass that represents an OpenTDB category object. This dataclass is not meant to be
+    instantiated by users.
 
     Attributes
     ----------
@@ -57,7 +58,8 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class Count:
-    """Represents an OpenTDB count object.
+    """Dataclass that represents an OpenTDB count object. This dataclass is not meant to be
+    instantiated by users.
 
     Attributes
     ----------
@@ -82,7 +84,8 @@ class Count:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    """Represents an OpenTDB global count object.
+    """Dataclass that represents an OpenTDB global count object. This dataclass is not meant to be
+    instantiated by users.
 
     Attributes
     ----------
@@ -107,7 +110,8 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
-    """Represents an OpenTDB question object.
+    """Dataclass that represents an OpenTDB question object. This dataclass is not meant to be
+    instantiated by users.
 
     Attributes
     ----------
