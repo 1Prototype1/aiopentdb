@@ -216,7 +216,7 @@ class Client:
         ----------
         token: `Optional[str]`
             Session token to reset.
-            If not set, defaults to `self.token` and it will be replaced by the new session token.
+            If not set, defaults to `Client.token` and it will be replaced by the new session token.
 
         Returns
         ----------
