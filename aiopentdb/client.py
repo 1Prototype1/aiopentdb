@@ -266,7 +266,7 @@ class Client:
         Returns
         -------
         List[:class:`.Question`]
-            List of questions.
+            List of fetched questions.
         """
 
         if amount < 1 and amount > 50:
