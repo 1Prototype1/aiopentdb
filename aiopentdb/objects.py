@@ -38,16 +38,15 @@ __all__ = (
 
 @dataclasses.dataclass(frozen=True)
 class Category:
-    """Dataclass that represents an OpenTDB category object. This dataclass is not meant to be
-    instantiated by users.
+    """|dataclass| an OpenTDB category object. |nouser|
 
     Attributes
     ----------
-    name: `str`
+    name: :class:`str`
         Name of the category object.
-    id: `int`
+    id: :class:`int`
         ID of the category object.
-    type: `CategoryType`
+    type: :class:`.CategoryType`
         Type of the category object.
     """
 
@@ -58,20 +57,19 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class Count:
-    """Dataclass that represents an OpenTDB count object. This dataclass is not meant to be
-    instantiated by users.
+    """|dataclass| an OpenTDB count object. |nouser|
 
     Attributes
     ----------
-    category: `Category`
+    category: :class:`.Category`
         Category that owns the count object.
-    total: `int`
+    total: :class:`int`
         Total question count.
-    easy: `int`
+    easy: :class:`int`
         Easy question count.
-    medium: `int`
+    medium: :class:`int`
         Medium question count.
-    hard: `int`
+    hard: :class:`int`
         Hard question count.
     """
 
@@ -84,20 +82,19 @@ class Count:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    """Dataclass that represents an OpenTDB global count object. This dataclass is not meant to be
-    instantiated by users.
+    """|dataclass| an OpenTDB global count object. |nouser|
 
     Attributes
     ----------
-    category: `Union[Category, str]`
+    category: Union[:class:`.Category`, :class:`str`]
         Category that owns the global count object.
-    total: `int`
+    total: :class:`int`
         Total question count.
-    pending: `int`
+    pending: :class:`int`
         Pending question count.
-    verified: `int`
+    verified: :class:`int`
         Verified question count.
-    rejected: `int`
+    rejected: :class:`int`
         Rejected question count.
     """
 
@@ -110,24 +107,23 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
-    """Dataclass that represents an OpenTDB question object. This dataclass is not meant to be
-    instantiated by users.
+    """|dataclass| an OpenTDB question object. |nouser|
 
     Attributes
     ----------
-    type: `QuestionType`
+    type: :class:`.QuestionType`
         Type of the question object.
-    category: `Category`
+    category: :class:`.Category`
         Category of the question object.
-    difficulty: `Difficulty`
+    difficulty: :class:`.Difficulty`
         Difficulty of the question object.
-    content: `str`
+    content: :class:`str`
         Content of the question object.
-    correct_answer: `str`
+    correct_answer: :class:`str`
         Correct answer for the question content.
-    incorrect_answers: `List[str]`
+    incorrect_answers: List[:class:`str`]
         List of incorrect answers.
-    mixed_answers: `List[str]`
+    mixed_answers: List[:class:`str`]
         List of mixed answers.
     """
 

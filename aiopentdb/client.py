@@ -123,24 +123,14 @@ class Client:
 
     Parameters
     ----------
-    session: `Optional[aiohttp.ClientSession]`
+    session: Optional[:class:`aiohttp.ClientSession`]
         Session to use for all HTTP requests.
-        Defaults to `aiohttp.ClientSession(raise_for_status=True)`.
+        Defaults to ``aiohttp.ClientSession(raise_for_status=True)``.
 
     Attributes
     ----------
-    session: `aiohttp.ClientSession`
+    session: :class:`aiohttp.ClientSession`
         Session to use for all HTTP requests.
-    token: `Optional[str]`
-        Current session token.
-    questions: `List[Question]`
-        List of cached questions.
-    categories: `List[Category]`
-        List of cached categories.
-    counts: `List[Count]`
-        List of cached counts.
-    global_counts: `List[GlobalCount]`
-        List of cached global counts.
     """
 
     _BASE_URL = yarl.URL('https://opentdb.com')
@@ -188,14 +178,16 @@ class Client:
 
     @property
     def token(self) -> Optional[str]:
+        """Optional[:class:`str`]: Current session token."""
+
         return self._token
 
     async def fetch_token(self) -> str:
         """Fetches a new session token.
 
         Returns
-        ----------
-        `str`
+        -------
+        :class:`str`
             New session token.
         """
 
@@ -214,13 +206,13 @@ class Client:
 
         Parameters
         ----------
-        token: `Optional[str]`
+        token: Optional[:class:`str`]
             Session token to reset.
-            If not set, defaults to `Client.token` and it will be replaced by the new session token.
+            If not set, defaults to :attr:`token` and it will be replaced by the new session token.
 
         Returns
-        ----------
-        `str`
+        -------
+        :class:`str`
             New session token.
         """
 
@@ -239,6 +231,8 @@ class Client:
 
     @property
     def questions(self) -> List[Question]:
+        """List[:class:`.Question`]: List of cached questions."""
+
         return list(self._questions)
 
     async def fetch_questions(
@@ -254,24 +248,24 @@ class Client:
 
         Parameters
         ----------
-        amount: `int`
+        amount: :class:`int`
             Amount of question to fetch.
-            Must be between `1` and `50`.
-            Defaults to `10`.
-        category_type: `Optional[CategoryType]`
+            Must be between ``1`` and ``50``.
+            Defaults to ``10``.
+        category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
-        difficulty: `Optional[Difficulty]`
+        difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
-        question_type: `Optional[QuestionType]`
+        question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
-        encoding: `Optional[Encoding]`
+        encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use when fetching.
-        token: `Optional[str]`
+        token: Optional[:class:`str`]
             Session token to use when fetching.
 
         Returns
-        ----------
-        `List[Question]`
+        -------
+        List[:class:`.Question`]
             List of questions.
         """
 
@@ -324,15 +318,15 @@ class Client:
 
         Parameters
         ----------
-        category_type: `Optional[CategoryType]`
+        category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
-        difficulty: `Optional[Difficulty]`
+        difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
-        question_type: `Optional[QuestionType]`
+        question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
-        encoding: `Optional[Encoding]`
+        encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use when fetching.
-        token: `Optional[str]`
+        token: Optional[:class:`str`]
             Session token to use when fetching.
         """
 
@@ -357,20 +351,20 @@ class Client:
 
         Parameters
         ----------
-        amount: `int`
+        amount: :class:`int`
             Amount of question to fetch.
-            Must be between `1` and `50`.
-            Defaults to `10`.
-        category_type: `Optional[CategoryType]`
+            Must be between ``1`` and ``50``.
+            Defaults to ``10``.
+        category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
-        difficulty: `Optional[Difficulty]`
+        difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
-        question_type: `Optional[QuestionType]`
+        question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
 
         Returns
-        ----------
-        `List[Question]`
+        -------
+        List[:class:`.Question`]
             List of cached questions.
         """
 
@@ -408,14 +402,16 @@ class Client:
 
     @property
     def categories(self) -> List[Category]:
+        """List[:class:`.Category`]: List of cached categories."""
+
         return list(self._categories.values())
 
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
         """Fetches all categories.
 
         Returns
-        ----------
-        `Dict[CategoryType, Category]`
+        -------
+        Dict[:class:`.CategoryType`, :class:`.Category`]
             Dict of fetched categories.
         """
 
@@ -442,12 +438,12 @@ class Client:
 
         Parameters
         ----------
-        category_type: `CategoryType`
+        category_type: :class:`.CategoryType`
             Type of the category to retrieve.
 
         Returns
-        ----------
-        `Optional[Category]`
+        -------
+        Optional[:class:`.Category`]
             Cached category.
         """
 
@@ -457,6 +453,8 @@ class Client:
 
     @property
     def counts(self) -> List[Count]:
+        """List[:class:`.Count`]: List of cached counts."""
+
         return list(self._counts.values())
 
     async def fetch_count(
@@ -467,12 +465,12 @@ class Client:
 
         Parameters
         ----------
-        category_type: `CategoryType`
+        category_type: :class:`.CategoryType`
             Type of the category to fetch.
 
         Returns
-        ----------
-        `Count`
+        -------
+        :class:`.Count`
             Fetched count.
         """
 
@@ -496,7 +494,7 @@ class Client:
 
         Parameters
         ----------
-        category_type: `CategoryType`
+        category_type: :class:`.CategoryType`
             Type of the category to populate.
         """
 
@@ -508,8 +506,8 @@ class Client:
         """Fetches all counts.
 
         Returns
-        ----------
-        `Dict[CategoryType, Count]`
+        -------
+        Dict[:class:`.CategoryType`, :class:`.Count`]
             Dict of fetched counts.
         """
 
@@ -532,12 +530,12 @@ class Client:
 
         Parameters
         ----------
-        category_type: `CategoryType`
+        category_type: :class:`.CategoryType`
             Type of the category to retrieve.
 
         Returns
-        ----------
-        `Optional[Count]`
+        -------
+        Optional[:class:`.Count`]
             Cached count.
         """
 
@@ -547,14 +545,16 @@ class Client:
 
     @property
     def global_counts(self) -> List[GlobalCount]:
+        """List[:class:`.GlobalCount`]: List of cached global counts."""
+
         return list(self._global_counts.values())
 
     async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
         """Fetches all global counts.
 
         Returns
-        ----------
-        `Dict[Union[CategoryType, str], GlobalCount]`
+        -------
+        Dict[Union[:class:`.CategoryType`, :class:`str`], :class:`.GlobalCount`]
             Dict of fetched global counts.
         """
 
@@ -597,12 +597,12 @@ class Client:
 
         Parameters
         ----------
-        category_type: `Union[CategoryType, str]`
+        category_type: Union[:class:`.CategoryType`, :class:`str`]
             Type of the category to retrieve.
 
         Returns
-        ----------
-        `Optional[GlobalCount]`
+        -------
+        Optional[:class:`.GlobalCount`]
             Cached global count.
         """
 
