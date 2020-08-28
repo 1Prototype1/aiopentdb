@@ -16,12 +16,14 @@ Installing
 Python 3.7+ is required.
 
 .. code:: sh
+
     pip install -U aiopentdb
 
 Quick Example
 -------------
 
 .. code:: py
+
     import asyncio
 
     import aiopentdb
