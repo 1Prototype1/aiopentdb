@@ -144,7 +144,10 @@ class Client:
         self._global_counts = {}
 
     async def populate_cache(self) -> None:
-        """Populates all internal caches."""
+        """|async|
+
+        Populates all internal caches.
+        """
 
         methods = (
             self.populate_token,
@@ -170,7 +173,10 @@ class Client:
         return data
 
     async def close(self) -> None:
-        """Closes the internal session."""
+        """|async|
+
+        Closes the internal session.
+        """
 
         await self.session.close()
 
@@ -183,7 +189,9 @@ class Client:
         return self._token
 
     async def fetch_token(self) -> str:
-        """Fetches a new session token.
+        """|async|
+
+        Fetches a new session token.
 
         Returns
         -------
@@ -196,13 +204,18 @@ class Client:
         return data['token']
 
     async def populate_token(self) -> None:
-        """Populates the internal session token."""
+        """|async|
+
+        Populates the internal session token.
+        """
 
         if self._token is None:
             self._token = await self.fetch_token()
 
     async def reset_token(self, token: Optional[str] = None) -> str:
-        """Resets a session token.
+        """|async|
+
+        Resets a session token.
 
         Parameters
         ----------
@@ -244,7 +257,9 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
-        """Fetches questions.
+        """|async|
+
+        Fetches questions.
 
         Parameters
         ----------
@@ -314,7 +329,9 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> None:
-        """Populates the internal question cache.
+        """|async|
+
+        Populates the internal question cache.
 
         Parameters
         ----------
@@ -407,7 +424,9 @@ class Client:
         return list(self._categories.values())
 
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
-        """Fetches all categories.
+        """|async|
+
+        Fetches all categories.
 
         Returns
         -------
@@ -425,7 +444,10 @@ class Client:
         return categories
 
     async def populate_categories(self) -> None:
-        """Populates the internal category cache."""
+        """|async|
+
+        Populates the internal category cache.
+        """
 
         if not self._categories:
             self._categories = await self.fetch_categories()
@@ -461,7 +483,9 @@ class Client:
         self,
         category_type: CategoryType
     ) -> Count:
-        """Fetches a count.
+        """|async|
+
+        Fetches a count.
 
         Parameters
         ----------
@@ -490,7 +514,9 @@ class Client:
         self,
         category_type: CategoryType
     ) -> None:
-        """Populates the internal count cache.
+        """|async|
+
+        Populates the internal count cache.
 
         Parameters
         ----------
@@ -503,7 +529,9 @@ class Client:
             count[category_type] = await self.fetch_count(category_type)
 
     async def fetch_counts(self) -> Dict[CategoryType, Count]:
-        """Fetches all counts.
+        """|async|
+
+        Fetches all counts.
 
         Returns
         -------
@@ -517,7 +545,10 @@ class Client:
         return count
 
     async def populate_counts(self) -> None:
-        """Populates all internal count caches."""
+        """|async|
+
+        Populates all internal count caches.
+        """
 
         if not self._counts:
             self._counts = await self.fetch_counts()
@@ -550,7 +581,9 @@ class Client:
         return list(self._global_counts.values())
 
     async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
-        """Fetches all global counts.
+        """|async|
+
+        Fetches all global counts.
 
         Returns
         -------
@@ -584,7 +617,10 @@ class Client:
         return global_count
 
     async def populate_global_counts(self) -> None:
-        """Populates the internal global count cache."""
+        """|async|
+
+        Populates the internal global count cache.
+        """
 
         if not self._global_counts:
             self._global_counts = await self.fetch_global_counts()

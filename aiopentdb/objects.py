@@ -38,7 +38,9 @@ __all__ = (
 
 @dataclasses.dataclass(frozen=True)
 class Category:
-    """|dataclass| an OpenTDB category object. |nouser|
+    """|noinstantiate|
+
+    |dataclass| an OpenTDB category object.
 
     Attributes
     ----------
@@ -57,7 +59,9 @@ class Category:
 
 @dataclasses.dataclass(frozen=True)
 class Count:
-    """|dataclass| an OpenTDB count object. |nouser|
+    """|noinstantiate|
+
+    |dataclass| an OpenTDB count object.
 
     Attributes
     ----------
@@ -82,7 +86,9 @@ class Count:
 
 @dataclasses.dataclass(frozen=True)
 class GlobalCount:
-    """|dataclass| an OpenTDB global count object. |nouser|
+    """|noinstantiate|
+
+    |dataclass| an OpenTDB global count object.
 
     Attributes
     ----------
@@ -107,7 +113,9 @@ class GlobalCount:
 
 @dataclasses.dataclass(frozen=True)
 class Question:
-    """|dataclass| an OpenTDB question object. |nouser|
+    """|noinstantiate|
+
+    |dataclass| an OpenTDB question object.
 
     Attributes
     ----------
