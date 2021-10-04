@@ -131,8 +131,6 @@ class Question:
         Correct answer for the question content.
     incorrect_answers: List[:class:`str`]
         List of incorrect answers.
-    mixed_answers: List[:class:`str`]
-        List of mixed answers.
     """
 
     type: QuestionType
@@ -144,6 +142,8 @@ class Question:
 
     @property
     def mixed_answers(self) -> List[str]:
+        """List[:class:`str`]: List of mixed answers."""
+
         answers = [self.correct_answer, *self.incorrect_answers]
         random.shuffle(answers)
         return answers

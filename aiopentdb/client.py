@@ -143,11 +143,38 @@ class Client:
         self._counts = {}
         self._global_counts = {}
 
-    async def populate_cache(self) -> None:
-        """|async|
+    @property
+    def token(self) -> Optional[str]:
+        """Optional[:class:`str`]: Current session token."""
 
-        Populates all internal caches.
-        """
+        return self._token
+
+    @property
+    def questions(self) -> List[Question]:
+        """List[:class:`.Question`]: List of cached questions."""
+
+        return list(self._questions)
+
+    @property
+    def categories(self) -> List[Category]:
+        """List[:class:`.Category`]: List of cached categories."""
+
+        return list(self._categories.values())
+
+    @property
+    def counts(self) -> List[Count]:
+        """List[:class:`.Count`]: List of cached counts."""
+
+        return list(self._counts.values())
+
+    @property
+    def global_counts(self) -> List[GlobalCount]:
+        """List[:class:`.GlobalCount`]: List of cached global counts."""
+
+        return list(self._global_counts.values())
+
+    async def populate_cache(self) -> None:
+        """Populates all internal caches."""
 
         methods = (
             self.populate_token,
@@ -173,25 +200,14 @@ class Client:
         return data
 
     async def close(self) -> None:
-        """|async|
-
-        Closes the internal session.
-        """
+        """Closes the internal session."""
 
         await self.session.close()
 
     # Token
 
-    @property
-    def token(self) -> Optional[str]:
-        """Optional[:class:`str`]: Current session token."""
-
-        return self._token
-
     async def fetch_token(self) -> str:
-        """|async|
-
-        Fetches a new session token.
+        """Fetches a new session token.
 
         Returns
         -------
@@ -204,18 +220,13 @@ class Client:
         return data['token']
 
     async def populate_token(self) -> None:
-        """|async|
-
-        Populates the internal session token.
-        """
+        """Populates the internal session token."""
 
         if self._token is None:
             self._token = await self.fetch_token()
 
     async def reset_token(self, token: Optional[str] = None) -> str:
-        """|async|
-
-        Resets a session token.
+        """Resets a session token.
 
         Parameters
         ----------
@@ -242,12 +253,6 @@ class Client:
 
     # Question
 
-    @property
-    def questions(self) -> List[Question]:
-        """List[:class:`.Question`]: List of cached questions."""
-
-        return list(self._questions)
-
     async def fetch_questions(
         self,
         amount: int = 10,
@@ -257,9 +262,7 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> List[Question]:
-        """|async|
-
-        Fetches questions.
+        """Fetches questions.
 
         Parameters
         ----------
@@ -329,9 +332,7 @@ class Client:
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
     ) -> None:
-        """|async|
-
-        Populates the internal question cache.
+        """Populates the internal question cache.
 
         Parameters
         ----------
@@ -417,16 +418,8 @@ class Client:
 
     # Category
 
-    @property
-    def categories(self) -> List[Category]:
-        """List[:class:`.Category`]: List of cached categories."""
-
-        return list(self._categories.values())
-
     async def fetch_categories(self) -> Dict[CategoryType, Category]:
-        """|async|
-
-        Fetches all categories.
+        """Fetches all categories.
 
         Returns
         -------
@@ -444,10 +437,7 @@ class Client:
         return categories
 
     async def populate_categories(self) -> None:
-        """|async|
-
-        Populates the internal category cache.
-        """
+        """Populates the internal category cache."""
 
         if not self._categories:
             self._categories = await self.fetch_categories()
@@ -473,19 +463,11 @@ class Client:
 
     # Count
 
-    @property
-    def counts(self) -> List[Count]:
-        """List[:class:`.Count`]: List of cached counts."""
-
-        return list(self._counts.values())
-
     async def fetch_count(
         self,
         category_type: CategoryType
     ) -> Count:
-        """|async|
-
-        Fetches a count.
+        """Fetches a count.
 
         Parameters
         ----------
@@ -514,9 +496,7 @@ class Client:
         self,
         category_type: CategoryType
     ) -> None:
-        """|async|
-
-        Populates the internal count cache.
+        """Populates the internal count cache.
 
         Parameters
         ----------
@@ -529,9 +509,7 @@ class Client:
             count[category_type] = await self.fetch_count(category_type)
 
     async def fetch_counts(self) -> Dict[CategoryType, Count]:
-        """|async|
-
-        Fetches all counts.
+        """Fetches all counts.
 
         Returns
         -------
@@ -545,10 +523,7 @@ class Client:
         return count
 
     async def populate_counts(self) -> None:
-        """|async|
-
-        Populates all internal count caches.
-        """
+        """Populates all internal count caches."""
 
         if not self._counts:
             self._counts = await self.fetch_counts()
@@ -574,16 +549,8 @@ class Client:
 
     # Global Count
 
-    @property
-    def global_counts(self) -> List[GlobalCount]:
-        """List[:class:`.GlobalCount`]: List of cached global counts."""
-
-        return list(self._global_counts.values())
-
     async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
-        """|async|
-
-        Fetches all global counts.
+        """Fetches all global counts.
 
         Returns
         -------
@@ -617,10 +584,7 @@ class Client:
         return global_count
 
     async def populate_global_counts(self) -> None:
-        """|async|
-
-        Populates the internal global count cache.
-        """
+        """Populates the internal global count cache."""
 
         if not self._global_counts:
             self._global_counts = await self.fetch_global_counts()

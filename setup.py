@@ -1,6 +1,6 @@
 import setuptools
 
-with open('README.md') as readme:
+with open('README.rst') as readme:
     long_description = readme.read()
 
 with open('requirements.txt') as requirements:
@@ -8,6 +8,7 @@ with open('requirements.txt') as requirements:
 
 classifiers = [
     'Development Status :: 5 - Production/Stable',
+    'Framework :: AsyncIO',
     'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
     'Programming Language :: Python :: 3.7',
@@ -24,10 +25,10 @@ project_urls = {
 
 setuptools.setup(
     name='aiopentdb',
-    version='0.1.2',
+    version='0.2.0',
     description='Async Python wrapper for OpenTDB API',
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type='text/x-rst',
     url='https://github.com/1Prototype1/aiopentdb',
     author='CyCanCode',
     license='MIT',

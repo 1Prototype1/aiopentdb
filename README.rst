@@ -5,6 +5,12 @@ aiopentdb
 
 Async Python wrapper for OpenTDB API.
 
+Note
+----
+This is the restored repo from the release packages.
+
+Major credit goes to ``CyCanCode``
+
 Installing
 ----------
 
@@ -52,3 +58,7 @@ Quick Example
 
 
     asyncio.run(main())
+
+Links
+-----
+- `OpenTDB API <https://opentdb.com/api_config.php>`_

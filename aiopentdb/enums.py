@@ -33,7 +33,35 @@ __all__ = (
 
 
 class CategoryType(enum.Enum):
-    """|enum| an OpenTDB category object type."""
+    """|enum| an OpenTDB category object type.
+
+    Attributes
+    ----------
+    general_knowledge
+    books
+    film
+    music
+    musicals_and_theatres
+    television
+    video_games
+    board_games
+    nature
+    computers
+    mathematics
+    mythology
+    sports
+    geography
+    history
+    politics
+    art
+    celebrities
+    animals
+    vehicles
+    comics
+    gadgets
+    anime_and_manga
+    cartoon_and_animation
+    """
 
     general_knowledge      = 9
     books                  = 10
@@ -62,14 +90,27 @@ class CategoryType(enum.Enum):
 
 
 class QuestionType(enum.Enum):
-    """|enum| an OpenTDB question object type."""
+    """|enum| an OpenTDB question object type.
+
+    Attributes
+    ----------
+    multiple
+    boolean
+    """
 
     multiple = 'multiple'
     boolean  = 'boolean'
 
 
 class Difficulty(enum.Enum):
-    """|enum| an OpenTDB difficulty."""
+    """|enum| an OpenTDB difficulty.
+
+    Attributes
+    ----------
+    easy
+    medium
+    hard
+    """
 
     easy   = 'easy'
     medium = 'medium'
@@ -77,7 +118,13 @@ class Difficulty(enum.Enum):
 
 
 class Encoding(enum.Enum):
-    """|enum| an OpenTDB encoding."""
+    """|enum| an OpenTDB encoding.
+
+    Attributes
+    ----------
+    url
+    base64
+    """
 
     url    = 'url3986'
     base64 = 'base64'
