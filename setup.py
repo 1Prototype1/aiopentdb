@@ -1,7 +1,5 @@
 import setuptools
 
-import aiopentdb
-
 with open('README.md') as readme:
     long_description = readme.read()
 
@@ -20,17 +18,17 @@ classifiers = [
 ]
 
 project_urls = {
-    'Source': 'https://github.com/CyCanCode/aiopentdb',
-    'Tracker': 'https://github.com/CyCanCode/aiopentdb/issues'
+    'Source': 'https://github.com/1Prototype1/aiopentdb',
+    'Tracker': 'https://github.com/1Prototype1/aiopentdb/issues'
 }
 
 setuptools.setup(
     name='aiopentdb',
-    version=aiopentdb.__version__,
+    version='0.1.2',
     description='Async Python wrapper for OpenTDB API',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/CyCanCode/aiopentdb',
+    url='https://github.com/1Prototype1/aiopentdb',
     author='CyCanCode',
     license='MIT',
     classifiers=classifiers,

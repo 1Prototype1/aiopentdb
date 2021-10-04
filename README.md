@@ -1,12 +1,7 @@
 aiopentdb
 =========
-
-.. image:: https://img.shields.io/travis/com/CyCanCode/aiopentdb
-    :alt: Travis (.com)
-.. image:: https://img.shields.io/pypi/l/aiopentdb
-    :alt: PyPI - License
-.. image:: https://img.shields.io/pypi/v/aiopentdb
-    :alt: PyPI
+.. image:: https://img.shields.io/github/license/1Prototype1/aiopentdb
+    :alt: GitHub - License
 
 Async Python wrapper for OpenTDB API.
 
@@ -17,7 +12,13 @@ Python 3.7+ is required.
 
 .. code:: sh
 
-    pip install -U aiopentdb
+    pip git+https://github.com/1Prototype1/aiopentdb.git
+
+or download the repo and run
+
+.. code:: sh
+
+    python setup.py install
 
 Quick Example
 -------------
