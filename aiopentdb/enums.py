@@ -37,6 +37,7 @@ class CategoryType(enum.Enum):
 
     Attributes
     ----------
+
     general_knowledge
     books
     film
@@ -94,6 +95,7 @@ class QuestionType(enum.Enum):
 
     Attributes
     ----------
+
     multiple
     boolean
     """
@@ -107,6 +109,7 @@ class Difficulty(enum.Enum):
 
     Attributes
     ----------
+
     easy
     medium
     hard
@@ -122,6 +125,7 @@ class Encoding(enum.Enum):
 
     Attributes
     ----------
+
     url
     base64
     """

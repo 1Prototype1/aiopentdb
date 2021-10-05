@@ -123,19 +123,21 @@ class Client:
 
     Parameters
     ----------
+
     session: Optional[:class:`aiohttp.ClientSession`]
         Session to use for all HTTP requests.
         Defaults to ``aiohttp.ClientSession(raise_for_status=True)``.
 
     Attributes
     ----------
+
     session: :class:`aiohttp.ClientSession`
         Session to use for all HTTP requests.
     """
 
     _BASE_URL = yarl.URL('https://opentdb.com')
 
-    def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
         self.session: aiohttp.ClientSession = session or aiohttp.ClientSession(raise_for_status=True)
         self._token = None
         self._questions = collections.deque(maxlen=50)
@@ -173,7 +175,7 @@ class Client:
 
         return list(self._global_counts.values())
 
-    async def populate_cache(self) -> None:
+    async def populate_cache(self):
         """Populates all internal caches."""
 
         methods = (
@@ -199,7 +201,7 @@ class Client:
             raise _errors[response_code]
         return data
 
-    async def close(self) -> None:
+    async def close(self):
         """Closes the internal session."""
 
         await self.session.close()
@@ -211,6 +213,7 @@ class Client:
 
         Returns
         -------
+
         :class:`str`
             New session token.
         """
@@ -219,7 +222,7 @@ class Client:
         data = await self._fetch('api_token.php', params=parameters)
         return data['token']
 
-    async def populate_token(self) -> None:
+    async def populate_token(self):
         """Populates the internal session token."""
 
         if self._token is None:
@@ -230,12 +233,14 @@ class Client:
 
         Parameters
         ----------
+
         token: Optional[:class:`str`]
             Session token to reset.
             If not set, defaults to :attr:`token` and it will be replaced by the new session token.
 
         Returns
         -------
+
         :class:`str`
             New session token.
         """
@@ -266,23 +271,30 @@ class Client:
 
         Parameters
         ----------
+
         amount: :class:`int`
             Amount of question to fetch.
             Must be between ``1`` and ``50``.
             Defaults to ``10``.
+
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
+
         difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
+
         question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
+
         encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use when fetching.
+
         token: Optional[:class:`str`]
             Session token to use when fetching.
 
         Returns
         -------
+
         List[:class:`.Question`]
             List of fetched questions.
         """
@@ -331,19 +343,24 @@ class Client:
         question_type: Optional[QuestionType] = None,
         encoding: Optional[Encoding] = None,
         token: Optional[str] = None
-    ) -> None:
+    ):
         """Populates the internal question cache.
 
         Parameters
         ----------
+
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
+
         difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
+
         question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
+
         encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use when fetching.
+
         token: Optional[:class:`str`]
             Session token to use when fetching.
         """
@@ -369,19 +386,24 @@ class Client:
 
         Parameters
         ----------
+
         amount: :class:`int`
             Amount of question to fetch.
             Must be between ``1`` and ``50``.
             Defaults to ``10``.
+
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
+
         difficulty: Optional[:class:`.Difficulty`]
             Difficulty of the question to fetch.
+
         question_type: Optional[:class:`.QuestionType`]
             Type of the question to fetch.
 
         Returns
         -------
+
         List[:class:`.Question`]
             List of cached questions.
         """
@@ -423,6 +445,7 @@ class Client:
 
         Returns
         -------
+
         Dict[:class:`.CategoryType`, :class:`.Category`]
             Dict of fetched categories.
         """
@@ -436,7 +459,7 @@ class Client:
             categories[type] = Category(**entry)
         return categories
 
-    async def populate_categories(self) -> None:
+    async def populate_categories(self):
         """Populates the internal category cache."""
 
         if not self._categories:
@@ -450,11 +473,13 @@ class Client:
 
         Parameters
         ----------
+
         category_type: :class:`.CategoryType`
             Type of the category to retrieve.
 
         Returns
         -------
+
         Optional[:class:`.Category`]
             Cached category.
         """
@@ -471,11 +496,13 @@ class Client:
 
         Parameters
         ----------
+
         category_type: :class:`.CategoryType`
             Type of the category to fetch.
 
         Returns
         -------
+
         :class:`.Count`
             Fetched count.
         """
@@ -495,11 +522,12 @@ class Client:
     async def populate_count(
         self,
         category_type: CategoryType
-    ) -> None:
+    ):
         """Populates the internal count cache.
 
         Parameters
         ----------
+
         category_type: :class:`.CategoryType`
             Type of the category to populate.
         """
@@ -513,6 +541,7 @@ class Client:
 
         Returns
         -------
+
         Dict[:class:`.CategoryType`, :class:`.Count`]
             Dict of fetched counts.
         """
@@ -522,7 +551,7 @@ class Client:
             count[enum] = await self.fetch_count(enum)
         return count
 
-    async def populate_counts(self) -> None:
+    async def populate_counts(self):
         """Populates all internal count caches."""
 
         if not self._counts:
@@ -536,11 +565,13 @@ class Client:
 
         Parameters
         ----------
+
         category_type: :class:`.CategoryType`
             Type of the category to retrieve.
 
         Returns
         -------
+
         Optional[:class:`.Count`]
             Cached count.
         """
@@ -554,6 +585,7 @@ class Client:
 
         Returns
         -------
+
         Dict[Union[:class:`.CategoryType`, :class:`str`], :class:`.GlobalCount`]
             Dict of fetched global counts.
         """
@@ -583,7 +615,7 @@ class Client:
 
         return global_count
 
-    async def populate_global_counts(self) -> None:
+    async def populate_global_counts(self):
         """Populates the internal global count cache."""
 
         if not self._global_counts:
@@ -597,11 +629,13 @@ class Client:
 
         Parameters
         ----------
+
         category_type: Union[:class:`.CategoryType`, :class:`str`]
             Type of the category to retrieve.
 
         Returns
         -------
+
         Optional[:class:`.GlobalCount`]
             Cached global count.
         """
