@@ -1,5 +1,5 @@
 """
-Async Python wrapper for OpenTDB API
+Async Python wrapper for the OpenTDB API
 ----------
 
 MIT License
@@ -30,5 +30,5 @@ from .enums import *
 from .errors import *
 from .objects import *
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 __author__ = 'CyCanCode'

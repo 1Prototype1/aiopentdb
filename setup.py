@@ -33,22 +33,21 @@ project_urls = {
 
 packages = ['aiopentdb']
 
-package_data = {'aiopentdb': ['py.typed']}
 
 setuptools.setup(
     name='aiopentdb',
-    version='0.3.0',
-    description='Async Python wrapper for OpenTDB API',
+    version='0.4.0',
+    description='Async Python wrapper for the OpenTDB API',
     long_description=long_description,
     long_description_content_type='text/x-rst',
     url='https://github.com/1Prototype1/aiopentdb',
     author='CyCanCode',
+    maintainer='1Prototype1',
     license='MIT',
     classifiers=classifiers,
     keywords=' '.join(keywords),
     project_urls=project_urls,
     packages=packages,
     install_requires=install_requires,
-    python_requires='~=3.6',
-    package_data=package_data
+    python_requires='~=3.6'
 )

@@ -25,8 +25,8 @@ SOFTWARE.
 import base64
 import collections
 import html
+import itertools
 import urllib.parse
-from typing import Dict, List, Optional, Union
 
 import aiohttp
 import yarl
@@ -119,7 +119,7 @@ _errors = {
 
 
 class Client:
-    """Class for interacting with OpenTDB API and handling caches.
+    """Class for interacting with the OpenTDB API and handling caches.
 
     Parameters
     ----------
@@ -127,6 +127,12 @@ class Client:
     session: Optional[:class:`aiohttp.ClientSession`]
         Session to use for all HTTP requests.
         Defaults to ``aiohttp.ClientSession(raise_for_status=True)``.
+
+    max_questions: :class:`int`
+        How many questions to cache.
+        Defaults to ``50``.
+
+        .. versionadded:: 0.4.0
 
     Attributes
     ----------
@@ -136,47 +142,53 @@ class Client:
     """
 
     _BASE_URL = yarl.URL('https://opentdb.com')
+    _QUESTION_MAX = 50
 
-    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
-        self.session: aiohttp.ClientSession = session or aiohttp.ClientSession(raise_for_status=True)
+    def __init__(self, session=None, max_questions=50):
+        self.session = session or aiohttp.ClientSession(raise_for_status=True)
         self._token = None
-        self._questions = collections.deque(maxlen=50)
+        self._questions = collections.deque(maxlen=max_questions)
         self._categories = {}
         self._counts = {}
         self._global_counts = {}
 
     @property
-    def token(self) -> Optional[str]:
+    def token(self):
         """Optional[:class:`str`]: Current session token."""
 
         return self._token
 
     @property
-    def questions(self) -> List[Question]:
+    def questions(self):
         """List[:class:`.Question`]: List of cached questions."""
 
         return list(self._questions)
 
     @property
-    def categories(self) -> List[Category]:
+    def categories(self):
         """List[:class:`.Category`]: List of cached categories."""
 
         return list(self._categories.values())
 
     @property
-    def counts(self) -> List[Count]:
+    def counts(self):
         """List[:class:`.Count`]: List of cached counts."""
 
         return list(self._counts.values())
 
     @property
-    def global_counts(self) -> List[GlobalCount]:
+    def global_counts(self):
         """List[:class:`.GlobalCount`]: List of cached global counts."""
 
         return list(self._global_counts.values())
 
     async def populate_cache(self):
-        """Populates all internal caches."""
+        """Populates all internal caches. This method calls every population related methods internally.
+
+        .. warning::
+
+            This method could be spammy for the API as it does not delay each populating process.
+        """
 
         methods = (
             self.populate_token,
@@ -208,7 +220,7 @@ class Client:
 
     # Token
 
-    async def fetch_token(self) -> str:
+    async def fetch_token(self):
         """Fetches a new session token.
 
         Returns
@@ -223,12 +235,12 @@ class Client:
         return data['token']
 
     async def populate_token(self):
-        """Populates the internal session token."""
+        """Populates the internal session token. This method calls :meth:`.Client.fetch_token` internally."""
 
         if self._token is None:
             self._token = await self.fetch_token()
 
-    async def reset_token(self, token: Optional[str] = None) -> str:
+    async def reset_token(self, token=None):
         """Resets a session token.
 
         Parameters
@@ -236,7 +248,7 @@ class Client:
 
         token: Optional[:class:`str`]
             Session token to reset.
-            If not set, defaults to :attr:`token` and it will be replaced by the new session token.
+            If not set, defaults to :attr:`.Client.token` and replace it with the new session token.
 
         Returns
         -------
@@ -260,13 +272,13 @@ class Client:
 
     async def fetch_questions(
         self,
-        amount: int = 10,
-        category_type: Optional[CategoryType] = None,
-        difficulty: Optional[Difficulty] = None,
-        question_type: Optional[QuestionType] = None,
-        encoding: Optional[Encoding] = None,
-        token: Optional[str] = None
-    ) -> List[Question]:
+        amount=10,
+        category_type=None,
+        difficulty=None,
+        question_type=None,
+        encoding=None,
+        token=None
+    ):
         """Fetches questions.
 
         Parameters
@@ -274,8 +286,16 @@ class Client:
 
         amount: :class:`int`
             Amount of question to fetch.
-            Must be between ``1`` and ``50``.
             Defaults to ``10``.
+
+            .. versionchanged:: 0.4.0
+
+                Remove question amount limitation.
+
+            .. warning::
+
+                Fetching more than 50 questions means making more than 1 API calls because of the 50 questions limit per
+                request.
 
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
@@ -287,10 +307,11 @@ class Client:
             Type of the question to fetch.
 
         encoding: Optional[:class:`.Encoding`]
-            Encoding of the response to use when fetching.
+            Encoding of the response to use.
 
         token: Optional[:class:`str`]
-            Session token to use when fetching.
+            Session token to use.
+            Defaults to :attr:`.Client.token` if exist.
 
         Returns
         -------
@@ -299,52 +320,53 @@ class Client:
             List of fetched questions.
         """
 
-        if amount < 1 and amount > 50:
-            raise ValueError("'amount' must be between 1 and 50")
-
-        parameters = {'amount': amount}
-        if category_type is not None:
-            parameters['category'] = category_type.value
-        if difficulty is not None:
-            parameters['difficulty'] = difficulty.value
-        if question_type is not None:
-            parameters['type'] = question_type.value
-        if encoding is not None:
-            parameters['encode'] = encoding.value
-        if token is None:
-            if self._token is not None:
-                parameters['token'] = self._token
-        else:
-            parameters['token'] = token
-        data = await self._fetch('api.php', params=parameters)
-
         questions = []
-        decoder = _decoders.get(encoding, html.unescape)
-        for entry in data['results']:
-            entry['content'] = decoder(entry.pop('question'))
-            for field in _fields:
-                entry[field] = decoder(entry[field])
+        repeat, remaining = divmod(amount, self._QUESTION_MAX)
 
-            incorrect_answers = entry['incorrect_answers']
-            for index, incorrect_answer in enumerate(incorrect_answers):
-                incorrect_answers[index] = decoder(incorrect_answer)
+        for actual_amount in tuple(itertools.repeat(self._QUESTION_MAX, repeat)) + (remaining,):
+            parameters = {'amount': actual_amount}
+            if category_type is not None:
+                parameters['category'] = category_type.value
+            if difficulty is not None:
+                parameters['difficulty'] = difficulty.value
+            if question_type is not None:
+                parameters['type'] = question_type.value
+            if encoding is not None:
+                parameters['encode'] = encoding.value
+            if token is None:
+                if self._token is not None:
+                    parameters['token'] = self._token
+            else:
+                parameters['token'] = token
+            data = await self._fetch('api.php', params=parameters)
 
-            entry['category'] = _category_by_names[entry['category']]
-            for field, enum in _enum_fields:
-                entry[field] = enum(decoder(entry[field]))
+            decoder = _decoders.get(encoding, html.unescape)
+            for entry in data['results']:
+                entry['content'] = decoder(entry.pop('question'))
+                for field in _fields:
+                    entry[field] = decoder(entry[field])
 
-            questions.append(Question(**entry))
+                incorrect_answers = entry['incorrect_answers']
+                for index, incorrect_answer in enumerate(incorrect_answers):
+                    incorrect_answers[index] = decoder(incorrect_answer)
+
+                entry['category'] = _category_by_names[entry['category']]
+                for field, enum in _enum_fields:
+                    entry[field] = enum(decoder(entry[field]))
+
+                questions.append(Question(**entry))
+
         return questions
 
     async def populate_questions(
         self,
-        category_type: Optional[CategoryType] = None,
-        difficulty: Optional[Difficulty] = None,
-        question_type: Optional[QuestionType] = None,
-        encoding: Optional[Encoding] = None,
-        token: Optional[str] = None
+        category_type=None,
+        difficulty=None,
+        question_type=None,
+        encoding=None,
+        token=None
     ):
-        """Populates the internal question cache.
+        """Populates the internal question cache. This method calls :meth:`.Client.fetch_questions` internally.
 
         Parameters
         ----------
@@ -359,10 +381,11 @@ class Client:
             Type of the question to fetch.
 
         encoding: Optional[:class:`.Encoding`]
-            Encoding of the response to use when fetching.
+            Encoding of the response to use.
 
         token: Optional[:class:`str`]
-            Session token to use when fetching.
+            Session token to use.
+            Defaults to :attr:`.Client.token` if exist.
         """
 
         questions = self._questions
@@ -377,11 +400,11 @@ class Client:
 
     def get_questions(
         self,
-        amount: int = 10,
-        category_type: Optional[CategoryType] = None,
-        difficulty: Optional[Difficulty] = None,
-        question_type: Optional[QuestionType] = None,
-    ) -> List[Question]:
+        amount=10,
+        category_type=None,
+        difficulty=None,
+        question_type=None,
+    ):
         """Retrieves questions from the internal cache. This also removes them from the cache.
 
         Parameters
@@ -389,8 +412,11 @@ class Client:
 
         amount: :class:`int`
             Amount of question to fetch.
-            Must be between ``1`` and ``50``.
             Defaults to ``10``.
+
+            .. versionchanged:: 0.4.0
+
+                Remove question amount limitation.
 
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
@@ -440,7 +466,7 @@ class Client:
 
     # Category
 
-    async def fetch_categories(self) -> Dict[CategoryType, Category]:
+    async def fetch_categories(self):
         """Fetches all categories.
 
         Returns
@@ -460,16 +486,13 @@ class Client:
         return categories
 
     async def populate_categories(self):
-        """Populates the internal category cache."""
+        """Populates the internal category cache. This method calls :meth:`.Client.fetch_categories` internally."""
 
         if not self._categories:
             self._categories = await self.fetch_categories()
 
-    def get_category(
-        self,
-        category_type: CategoryType
-    ) -> Optional[Category]:
-        """Retrieves a category from the internal cache.
+    def get_category(self, category_type):
+        """Retrieves a :class:`.Category` from the internal cache.
 
         Parameters
         ----------
@@ -488,11 +511,8 @@ class Client:
 
     # Count
 
-    async def fetch_count(
-        self,
-        category_type: CategoryType
-    ) -> Count:
-        """Fetches a count.
+    async def fetch_count(self, category_type):
+        """Fetches a :class:`.Count`.
 
         Parameters
         ----------
@@ -519,11 +539,8 @@ class Client:
             count['total_hard_question_count']
         )
 
-    async def populate_count(
-        self,
-        category_type: CategoryType
-    ):
-        """Populates the internal count cache.
+    async def populate_count(self, category_type):
+        """Populates the internal count cache. This method calls :meth:`.Client.fetch_count` internally.
 
         Parameters
         ----------
@@ -536,7 +553,7 @@ class Client:
         if not count.get(category_type):
             count[category_type] = await self.fetch_count(category_type)
 
-    async def fetch_counts(self) -> Dict[CategoryType, Count]:
+    async def fetch_counts(self):
         """Fetches all counts.
 
         Returns
@@ -552,16 +569,13 @@ class Client:
         return count
 
     async def populate_counts(self):
-        """Populates all internal count caches."""
+        """Populates all internal count caches. This method calls :meth:`.Client.fetch_counts` internally."""
 
         if not self._counts:
             self._counts = await self.fetch_counts()
 
-    def get_count(
-        self,
-        category_type: CategoryType
-    ) -> Optional[Count]:
-        """Retrieves a count from the internal cache.
+    def get_count(self, category_type):
+        """Retrieves a :class:`.Count` from the internal cache.
 
         Parameters
         ----------
@@ -580,7 +594,7 @@ class Client:
 
     # Global Count
 
-    async def fetch_global_counts(self) -> Dict[Union[CategoryType, str], GlobalCount]:
+    async def fetch_global_counts(self):
         """Fetches all global counts.
 
         Returns
@@ -616,16 +630,13 @@ class Client:
         return global_count
 
     async def populate_global_counts(self):
-        """Populates the internal global count cache."""
+        """Populates the internal global count cache. This method calls :meth:`.Client.fetch_global_counts` internally."""
 
         if not self._global_counts:
             self._global_counts = await self.fetch_global_counts()
 
-    def get_global_count(
-        self,
-        category_type: Union[CategoryType, str]
-    ) -> Optional[GlobalCount]:
-        """Retrieves a global count from the internal cache.
+    def get_global_count(self, category_type):
+        """Retrieves a :class:`.GlobalCount` from the internal cache.
 
         Parameters
         ----------

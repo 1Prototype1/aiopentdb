@@ -36,28 +36,28 @@ class RequestError(Exception):
 
 
 class NoResults(RequestError):
-    """|error| the API could not return results. |subclass| :class:`RequestError`."""
+    """|error| the API could not return results. |subclass| :class:`.RequestError`."""
 
     def __init__(self):
         super().__init__('Could not return results')
 
 
 class InvalidParameter(RequestError):
-    """|error| the arguments passed are invalid. |subclass| :class:`RequestError`."""
+    """|error| the arguments passed are invalid. |subclass| :class:`.RequestError`."""
 
     def __init__(self):
         super().__init__('Arguments passed are invalid')
 
 
 class TokenNotFound(RequestError):
-    """|error| the session token does not exist. |subclass| :class:`RequestError`."""
+    """|error| the session token does not exist. |subclass| :class:`.RequestError`."""
 
     def __init__(self):
         super().__init__('Session Token does not exist')
 
 
 class TokenEmpty(RequestError):
-    """|error| the session token is empty. |subclass| :class:`RequestError`."""
+    """|error| the session token is empty. |subclass| :class:`.RequestError`."""
 
     def __init__(self):
         super().__init__(

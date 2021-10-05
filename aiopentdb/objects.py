@@ -23,11 +23,8 @@ SOFTWARE.
 """
 
 import random
-from typing import List, Union
 
 import attr
-
-from .enums import CategoryType, Difficulty, QuestionType
 
 __all__ = (
     'Category',
@@ -37,9 +34,13 @@ __all__ = (
 )
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(frozen=True)
 class Category:
     """|dataclass| an OpenTDB category object.
+
+    .. note::
+
+        This class is not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -54,14 +55,18 @@ class Category:
         Type of the category object.
     """
 
-    name: str
-    id: int
-    type: CategoryType
+    name = attr.ib()
+    id = attr.ib()
+    type = attr.ib()
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(frozen=True)
 class Count:
     """|dataclass| an OpenTDB count object.
+
+    .. note::
+
+        This class is not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -82,16 +87,20 @@ class Count:
         Hard question count.
     """
 
-    category: Category
-    total: int
-    easy: int
-    medium: int
-    hard: int
+    category = attr.ib()
+    total = attr.ib()
+    easy = attr.ib()
+    medium = attr.ib()
+    hard = attr.ib()
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(frozen=True)
 class GlobalCount:
     """|dataclass| an OpenTDB global count object.
+
+    .. note::
+
+        This class is not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -112,16 +121,20 @@ class GlobalCount:
         Rejected question count.
     """
 
-    category: Union[Category, str]
-    total: int
-    pending: int
-    verified: int
-    rejected: int
+    category = attr.ib()
+    total = attr.ib()
+    pending = attr.ib()
+    verified = attr.ib()
+    rejected = attr.ib()
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(frozen=True)
 class Question:
     """|dataclass| an OpenTDB question object.
+
+    .. note::
+
+        This class is not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -145,15 +158,15 @@ class Question:
         List of incorrect answers.
     """
 
-    type: QuestionType
-    category: Category
-    difficulty: Difficulty
-    content: str
-    correct_answer: str
-    incorrect_answers: List[str]
+    type = attr.ib()
+    category = attr.ib()
+    difficulty = attr.ib()
+    content = attr.ib()
+    correct_answer = attr.ib()
+    incorrect_answers = attr.ib()
 
     @property
-    def mixed_answers(self) -> List[str]:
+    def mixed_answers(self):
         """List[:class:`str`]: List of mixed answers."""
 
         answers = [self.correct_answer, *self.incorrect_answers]
