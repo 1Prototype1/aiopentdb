@@ -11,54 +11,40 @@ This is the restored repo from the release packages.
 
 Major credit goes to ``CyCanCode``
 
+Features
+--------
+- Full API coverage
+- Caching
+
 Installing
 ----------
 
-**Python 3.6+ is required.**
+Python **3.6** or **higher** is required
 
-.. code:: sh
+.. code-block:: shell
 
     pip install git+https://github.com/1Prototype1/aiopentdb.git
 
 or download the repo and run
 
-.. code:: sh
+.. code-block:: shell
 
     python setup.py install
 
-Quick Example
--------------
+Quickstart
+----------
 
-.. code:: py
+.. code-block:: python3
 
     import asyncio
-
     import aiopentdb
 
-
     async def main():
-        # instantiate the OpenTDB client
-        client = aiopentdb.Client()
-
         try:
-            # fetch 5 questions with category type "mathematics" and difficulty "easy"
-            questions = await client.fetch_questions(
-                amount=5,
-                category_type=aiopentdb.CategoryType.mathematics,
-                difficulty=aiopentdb.Difficulty.easy
-            )
-
-            # print each question and its correct answer
-            for question in questions:
-                print(f'Question: {question.content}\nAnswer: {question.correct_answer}', end='\n\n')
-
+            client = aiopentdb.Client()
+            async for question in client.fetch_questions(amount=5):
+                print(question.content)
         finally:
-            # close the internal session
             await client.close()
 
-
     asyncio.run(main())
-
-Links
------
-- `OpenTDB API <https://opentdb.com/api_config.php>`_

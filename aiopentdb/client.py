@@ -1,148 +1,123 @@
 """
-MIT License
+    aiopentdb.client
+    ~~~~~~~~~~~~~~~~
 
-Copyright (c) 2020 CyCanCode
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+    :copyright: Copyright (c) 2020 CyCanCode.
+    :license: MIT, see LICENSE for more details.
 """
 
-import base64
 import collections
-import html
-import itertools
-import urllib.parse
 
 import aiohttp
+import attr
 import yarl
 
-from .enums import CategoryType, Encoding
-from .errors import InvalidParameter, NoResults, RequestError, TokenEmpty, TokenNotFound
-from .objects import Category, Count, GlobalCount, Question
+from .enums import CategoryType
+from .errors import InvalidParameter, NoResults, TokenEmpty, TokenNotFound
+from .iterators import _AsyncQuestionsIterator, _QuestionsIterator
+from .objects import Category, Count, GlobalCount
 
-__all__ = ('Client',)
+__all__ = ('Settings', 'Client')
 
-_category_names = (
-    'General Knowledge',
-    'Entertainment: Books',
-    'Entertainment: Film',
-    'Entertainment: Music',
-    'Entertainment: Musicals & Theatres',
-    'Entertainment: Television',
-    'Entertainment: Video Games',
-    'Entertainment: Board Games',
-    'Science & Nature',
-    'Science: Computers',
-    'Science: Mathematics',
-    'Mythology',
-    'Sports',
-    'Geography',
-    'History',
-    'Politics',
-    'Art',
-    'Celebrities',
-    'Animals',
-    'Vehicles',
-    'Entertainment: Comics',
-    'Science: Gadgets',
-    'Entertainment: Japanese Anime & Manga',
-    'Entertainment: Cartoon & Animations'
-)
-_category_enums = (
-    CategoryType.general_knowledge,
-    CategoryType.books,
-    CategoryType.film,
-    CategoryType.music,
-    CategoryType.musicals_and_theatres,
-    CategoryType.television,
-    CategoryType.video_games,
-    CategoryType.board_games,
-    CategoryType.nature,
-    CategoryType.computers,
-    CategoryType.mathematics,
-    CategoryType.mythology,
-    CategoryType.sports,
-    CategoryType.geography,
-    CategoryType.history,
-    CategoryType.politics,
-    CategoryType.art,
-    CategoryType.celebrities,
-    CategoryType.animals,
-    CategoryType.vehicles,
-    CategoryType.comics,
-    CategoryType.gadgets,
-    CategoryType.anime_and_manga,
-    CategoryType.cartoon_and_animations
-)
+@attr.s(slots=True)
+class Settings:
+    """Dataclass representing a cache settings for :class:`.Client`.
 
-
-class Client:
-    """Class for interacting with the OpenTDB API and handling caches.
-
-    Parameters
-    ----------
-
-    session: Optional[:class:`aiohttp.ClientSession`]
-        Session to use for all HTTP requests.
-        Defaults to ``aiohttp.ClientSession(raise_for_status=True)``.
-
-    max_questions: :class:`int`
-        Amount of questions to cache.
-        Defaults to ``50``.
-
-        .. versionadded:: 0.4.0
+    This dataclass is used to configure how the client's internal cache should be populated.
 
     Attributes
     ----------
+    token: :class:`bool`
+        Denotes whether to populate :class:`.Client` internal token cache or not.
+    questions: :class:`bool`
+        Denotes whether to populate :class:`.Client` internal question cache or not.
+    counts: :class:`bool`
+        Denotes whether to populate :class:`.Client` internal count cache or not.
+    global_counts: :class:`bool`
+        Denotes whether to populate :class:`.Client` internal global count cache or not.
+    overwrite: :class:`bool`
+        Denotes whether to replace :class:`.Client` current cached entries with the new
+        entries when the internal cache has already been populated or not.
 
-    session: :class:`aiohttp.ClientSession`
-        Session to use for all HTTP requests.
+        This also changes how the internal question cache should be populated. When this is set to
+        ``True``, populating the cache will replace all the cached questions with the new
+        questions. When this is set to ``False``, only empty slots of the cache will be populated
+        with the new questions.
+    category: Optional[:class:`.CategoryType`]
+        Category of the questions to be cached.
+    difficulty: Optional[:class:`.DifficultyType`]
+        Difficulty of the questions to be cached.
+    question: Optional[:class:`.QuestionType`]
+        Type of the questions to be cached.
+    encoding: Optional[:class:`.EncodingType`]
+        Encoding of the API responses to be used.
     """
 
-    _BASE_URL = yarl.URL('https://opentdb.com')
-    _QUESTION_MAX = 50
-    _DECODERS = {
-        Encoding.url: urllib.parse.unquote,
-        Encoding.base64: lambda decodable: base64.b64decode(decodable).decode()
-    }
+    token = attr.ib(False, kw_only=True)
+    questions = attr.ib(False, kw_only=True)
+    categories = attr.ib(False, kw_only=True)
+    counts = attr.ib(False, kw_only=True)
+    global_counts = attr.ib(False, kw_only=True)
+
+    overwrite = attr.ib(False, kw_only=True)
+
+    category = attr.ib(None, kw_only=True)
+    difficulty = attr.ib(None, kw_only=True)
+    question = attr.ib(None, kw_only=True)
+    encoding = attr.ib(None, kw_only=True)
+
+class Client:
+    """Class representing an OpenTDB client.
+
+    This class is used to interact with the API and handle cache.
+
+    Parameters
+    ----------
+    session: Optional[:class:`aiohttp.ClientSession`]
+        Session to be used when performing HTTP requests.
+
+        Defaults to ``None``.
+    max_questions: :class:`int`
+        Number of questions to be cached.
+
+        Defaults to ``50``.
+    settings: Optional[:class:`.Settings`]
+        Settings to be used when populating the internal cache.
+
+        Defaults to ``Settings()``.
+
+    Attributes
+    ----------
+    session: Optional[:class:`aiohttp.ClientSession`]
+        Session to be used when performing HTTP requests.
+
+        If ``None``, a new session will be created automatically when performing HTTP requests.
+    settings: :class:`.Settings`
+        Settings to be used when populating the internal cache.
+    """
+
+    _BASE_URL = yarl.URL('https://opentdb.com/')
     _ERRORS = {
+        None: None,
+        0: None,
         1: NoResults,
         2: InvalidParameter,
         3: TokenNotFound,
         4: TokenEmpty
     }
 
-    _CATEGORY_BY_NAMES = {}
-    _CATEGORY_BY_IDS = {}
+    def __init__(
+        self, *,
+        session=None,
+        max_questions=50,
+        settings=None
+    ):
+        if max_questions < 0:
+            raise ValueError('max_questions must be non-negative')
 
-    for _name, _enum in zip(_category_names, _category_enums):
-        _data = {'name': _name, 'id': _enum.value}
-        _category = Category(_data)
-        _CATEGORY_BY_NAMES[_name] = _category
-        _CATEGORY_BY_IDS[_enum.value] = _category
+        self.session = session
+        self.settings = settings or Settings()
 
-    del _name
-    del _enum
-    del _data
-    del _category
-
-    def __init__(self, session=None, max_questions=50):
-        self.session = session or aiohttp.ClientSession(raise_for_status=True)
         self._token = None
         self._questions = collections.deque(maxlen=max_questions)
         self._categories = {}
@@ -151,542 +126,399 @@ class Client:
 
     @property
     def token(self):
-        """Optional[:class:`str`]: Current session token."""
+        """Optional[:class:`str`]: Cached session token. ``None`` when not populated."""
 
         return self._token
 
     @property
     def questions(self):
-        """List[:class:`.Question`]: List of cached questions."""
-
+        """List[:class:`.Question`]: List of cached questions. Empty when not populated."""
         return list(self._questions)
 
     @property
     def categories(self):
-        """List[:class:`.Category`]: List of cached categories."""
+        """List[:class:`.Category`]: List of cached categories. Empty when not populated."""
 
         return list(self._categories.values())
 
     @property
     def counts(self):
-        """List[:class:`.Count`]: List of cached counts."""
+        """List[:class:`.Count`]: List of cached counts. Empty when not populated."""
 
         return list(self._counts.values())
 
     @property
     def global_counts(self):
-        """List[:class:`.GlobalCount`]: List of cached global counts."""
+        """List[:class:`.GlobalCount`]: List of cached global counts. Empty when not populated."""
 
         return list(self._global_counts.values())
 
-    async def populate_cache(self):
-        """Populates all internal caches. This method calls every population related methods internally.
+    async def _request(self, method, endpoint, **options):
+        if self.session is None:
+            self.session = aiohttp.ClientSession(raise_for_status=True)
 
-        .. warning::
+        async with self.session.request(method, self._BASE_URL / endpoint, **options) as response:
+            payload = await response.json()
 
-            This method could be spammy for the API as it does not delay each populating process.
-        """
+        error_type = self._ERRORS[payload.pop('response_code', None)]
+        if error_type is not None:
+            raise error_type()
+        return payload
 
-        methods = (
-            self.populate_token,
-            self.populate_questions,
-            self.populate_categories,
-            self.populate_counts,
-            self.populate_global_counts
-        )
-        for method in methods:
-            await method()
-
-    # Session
-
-    async def _fetch(self, endpoint, *args, **kwargs):
-        try:
-            async with self.session.get(self._BASE_URL / endpoint, *args, **kwargs) as response:
-                data = await response.json()
-        except aiohttp.ClientResponseError as error:
-            raise RequestError(error.message)
-
-        if data is None:
-            raise RequestError('Unknown error occured')
-
-        response_code = data.pop('response_code', 0)
-        if response_code != 0:
-            raise self._ERRORS[response_code]
-        return data
-
-    async def close(self):
-        """Closes the internal session."""
-
-        await self.session.close()
-
-    # Token
+    # token
 
     async def fetch_token(self):
         """Fetches a new session token.
 
         Returns
         -------
-
         :class:`str`
             New session token.
         """
 
-        parameters = {'command': 'request'}
-        data = await self._fetch('api_token.php', params=parameters)
-        return data['token']
-
-    async def populate_token(self):
-        """Populates the internal session token. This method calls :meth:`.Client.fetch_token` internally."""
-
-        if self._token is None:
-            self._token = await self.fetch_token()
+        params = {
+            'command': 'request'
+        }
+        payload = await self._request('GET', 'api_token.php', params=params)
+        return payload['token']
 
     async def reset_token(self, token=None):
         """Resets a session token.
 
         Parameters
         ----------
-
         token: Optional[:class:`str`]
-            Session token to reset.
-            If not set, defaults to :attr:`.Client.token` and replace it with the new session token.
+            Token to be reset.
+
+            If ``None``, :attr:`~.Client.token` will be used. If no cached token exist,
+            :class:`ValueError` will be raised.
+
+            Defaults to ``None``.
 
         Returns
         -------
-
         :class:`str`
             New session token.
         """
 
-        parameters = {
-            'command': 'reset',
-            'token': token or self._token
-        }
-        data = await self._fetch('api_token.php', params=parameters)
-
-        new_token = data['token']
+        is_internal = token is None
+        token = self._token if is_internal else token
         if token is None:
+            raise ValueError('token must be supplied')
+
+        params = {
+            'command': 'reset',
+            'token': token
+        }
+        payload = await self._request('GET', 'api_token.php', params=params)
+        new_token = payload['token']
+
+        if is_internal:
             self._token = new_token
         return new_token
 
-    # Question
+    # question
 
-    def _get_amounts(self, amount):
-        repeat, remaining = divmod(amount, self._QUESTION_MAX)
-        amounts = (*itertools.repeat(self._QUESTION_MAX, repeat),)
-        if remaining:
-            amounts += (remaining,)
-        return amounts
-
-    async def fetch_questions(
-        self,
+    def fetch_questions(
+        self, *,
         amount=10,
-        category_type=None,
+        category=None,
         difficulty=None,
-        question_type=None,
+        type=None,
         encoding=None,
         token=None
     ):
-        """Fetches questions.
+        """Returns an async iterator for handling questions fetching for the client.
+
+        The iterator can be used in 2 different ways:
+
+        .. code-block:: python3
+
+            # quick fetch
+            ... = await client.fetch_questions(...).flatten()
+
+            # cancelable fetch
+            async for ... in client.fetch_questions(...):
+                ...
 
         Parameters
         ----------
-
         amount: :class:`int`
-            Amount of question to fetch.
+            Amount of questions to be fetched.
+
             Defaults to ``10``.
+        category: Optional[:class:`.CategoryType`]
+            Category of the questions to be fetched.
 
-            .. warning::
+            Defaults to ``None``.
+        difficulty: Optional[:class:`.DifficultyType`]
+            Difficulty of the questions to be fetched.
 
-                Only 50 questions can be fetched per request.
+            Defaults to ``None``.
+        type: Optional[:class:`.QuestionType`]
+            Type of the questions to be fetched.
 
-            .. versionchanged:: 0.4.0
+            Defaults to ``None``.
+        encoding: Optional[:class:`.EncodingType`]
+            Encoding of the API response to be used.
 
-                Remove limit of the question amount.
-
-        category_type: Optional[:class:`.CategoryType`]
-            Type of the question category to fetch.
-
-        difficulty: Optional[:class:`.Difficulty`]
-            Difficulty of the question to fetch.
-
-        question_type: Optional[:class:`.QuestionType`]
-            Type of the question to fetch.
-
-        encoding: Optional[:class:`.Encoding`]
-            Encoding of the response to use.
-
-            .. note::
-
-                This does not affect result.
-
+            Defaults to ``None``.
         token: Optional[:class:`str`]
-            Session token to use.
-            Defaults to :attr:`.Client.token` if exist.
+            Session token to be used.
 
-        Returns
-        -------
-
-        List[:class:`.Question`]
-            List of fetched questions.
-        """
-
-        questions = []
-
-        for actual_amount in self._get_amounts(amount):
-            parameters = {'amount': actual_amount}
-            if category_type is not None:
-                parameters['category'] = category_type.value
-            if difficulty is not None:
-                parameters['difficulty'] = difficulty.value
-            if question_type is not None:
-                parameters['type'] = question_type.value
-            if encoding is not None:
-                parameters['encode'] = encoding.value
-
-            if token is None:
-                if self._token is not None:
-                    parameters['token'] = self._token
-            else:
-                parameters['token'] = token
-            data = await self._fetch('api.php', params=parameters)
-
-            decoder = self._DECODERS.get(encoding, html.unescape)
-            for entry in data['results']:
-                questions.append(Question(self, entry, decoder))
-
-        return questions
-
-    async def generate_questions(
-        self,
-        amount=10,
-        category_type=None,
-        difficulty=None,
-        question_type=None,
-        encoding=None,
-        token=None
-    ):
-        """Generates questions. Unlike :meth:`.Client.fetch_questions`, this method will make requests one by one. The
-        following example would only make 2 requests instead of 4 as it stops at 75 questions:
-
-        .. code:: py
-
-            count = 0
-            async for question in client.generate_questions(amount=200):
-                if count >= 75:
-                    break
-                count += 1
-
-        .. versionadded:: 0.5.0
-
-        Parameters
-        ----------
-
-        amount: :class:`int`
-            Amount of question to fetch.
-            Defaults to ``10``.
-
-            .. warning::
-
-                Only 50 questions can be generated per request.
-
-        category_type: Optional[:class:`.CategoryType`]
-            Type of the question category to fetch.
-
-        difficulty: Optional[:class:`.Difficulty`]
-            Difficulty of the question to fetch.
-
-        question_type: Optional[:class:`.QuestionType`]
-            Type of the question to fetch.
-
-        encoding: Optional[:class:`.Encoding`]
-            Encoding of the response to use.
-
-            .. note::
-
-                This does not affect result.
-
-        token: Optional[:class:`str`]
-            Session token to use.
-            Defaults to :attr:`.Client.token` if exist.
+            Defaults to :attr:`~.Client.token`.
 
         Yields
         ------
         :class:`.Question`
-            Generated question.
+            Fetched question.
         """
 
-        for actual_amount in self._get_amounts(amount):
-            for question in await self.fetch_questions(
-                actual_amount, category_type, difficulty, question_type, encoding, token
-            ):
-                yield question
-
-    async def populate_questions(
-        self,
-        category_type=None,
-        difficulty=None,
-        question_type=None,
-        encoding=None,
-        token=None
-    ):
-        """Populates the internal question cache. This method calls :meth:`.Client.fetch_questions` internally.
-
-        Parameters
-        ----------
-
-        category_type: Optional[:class:`.CategoryType`]
-            Type of the question category to fetch.
-
-        difficulty: Optional[:class:`.Difficulty`]
-            Difficulty of the question to fetch.
-
-        question_type: Optional[:class:`.QuestionType`]
-            Type of the question to fetch.
-
-        encoding: Optional[:class:`.Encoding`]
-            Encoding of the response to use.
-
-            .. note::
-
-                This does not affect result.
-
-        token: Optional[:class:`str`]
-            Session token to use.
-            Defaults to :attr:`.Client.token` if exist.
-        """
-
-        questions = self._questions
-        amount = questions.maxlen - len(questions)
         if amount < 1:
-            return
+            raise ValueError('amount must be above 0')
 
-        new_questions = await self.fetch_questions(amount, category_type, difficulty, question_type, encoding, token)
-        questions.extend(new_questions)
+        return _AsyncQuestionsIterator(
+            self,
+            amount=amount,
+            category=category,
+            difficulty=difficulty,
+            type=type,
+            encoding=encoding,
+            token=token or self._token
+        )
 
     def get_questions(
-        self,
+        self, *,
         amount=10,
-        category_type=None,
+        category=None,
         difficulty=None,
-        question_type=None,
+        type=None,
+        consume=False
     ):
-        """Retrieves questions from the internal cache. This also removes them from the cache.
+        """Returns an iterator for handling questions retrieving for the client.
+
+        The iterator can be used in 2 different ways:
+
+        .. code-block:: python3
+
+            # quick get
+            ... = client.get_questions(...).flatten()
+
+            # cancelable get
+            for ... in client.get_questions(...):
+                ...
 
         Parameters
         ----------
-
         amount: :class:`int`
-            Amount of question to fetch.
+            Amount of questions to be retrieved.
+
             Defaults to ``10``.
+        category: Optional[:class:`.CategoryType`]
+            Category of the questions to be retrieved.
 
-            .. versionchanged:: 0.4.0
+            Defaults to ``None``.
+        difficulty: Optional[:class:`.DifficultyType`]
+            Difficulty of the questions to be retrieved.
 
-                Remove limit of the question amount.
+            Defaults to ``None``.
+        type: Optional[:class:`.QuestionType`]
+            Type of the questions to be retrieved.
 
-        category_type: Optional[:class:`.CategoryType`]
-            Type of the question category to fetch.
+            Defaults to ``None``.
+        consume: :class:`bool`
+            Denotes whether to remove retrieved questions from the internal question cache or not.
 
-        difficulty: Optional[:class:`.Difficulty`]
-            Difficulty of the question to fetch.
+            Defaults to ``False``.
 
-        question_type: Optional[:class:`.QuestionType`]
-            Type of the question to fetch.
-
-        Returns
-        -------
-
-        List[:class:`.Question`]
-            List of cached questions.
+        Yields
+        ------
+        :class:`.Question`
+            Retrieved question.
         """
 
-        questions = self._questions
-        retrieved_questions = []
+        if amount < 1:
+            raise ValueError('amount must be above 0')
 
-        count = 0
-        for question in self.questions:
-            if count >= amount:
-                break
+        return _QuestionsIterator(
+            self,
+            amount=amount,
+            category=category,
+            difficulty=difficulty,
+            type=type,
+            consume=consume
+        )
 
-            if category_type is not None and question.category.type != category_type:
-                continue
-            if difficulty is not None and question.difficulty != difficulty:
-                continue
-            if question_type is not None and question.type != question_type:
-                continue
+    # category
 
-            questions.remove(question)
-            retrieved_questions.append(question)
-            count += 1
-
-        return retrieved_questions
-
-    # Category
+    def _create_categories(self, payload):
+        return [Category(data) for data in payload]
 
     async def fetch_categories(self):
         """Fetches all categories.
 
         Returns
         -------
-
-        Dict[:class:`.CategoryType`, :class:`.Category`]
-            Dict of fetched categories.
+        List[:class:`.Category`]
+            List of fetched categories.
         """
 
-        data = await self._fetch('api_category.php')
+        payload = await self._request('GET', 'api_category.php')
+        return self._create_categories(payload['trivia_categories'])
 
-        categories = {}
-        for entry in data['trivia_categories']:
-            categories[type] = Category(entry)
-        return categories
-
-    async def populate_categories(self):
-        """Populates the internal category cache. This method calls :meth:`.Client.fetch_categories` internally."""
-
-        if not self._categories:
-            self._categories = await self.fetch_categories()
-
-    def get_category(self, category_type):
-        """Retrieves a :class:`.Category` from the internal cache.
+    def get_category(self, type):
+        """Retrieves a category from the internal category cache.
 
         Parameters
         ----------
-
-        category_type: :class:`.CategoryType`
-            Type of the category to retrieve.
+        type: :class:`.CategoryType`
+            Type of the category to be retrieved.
 
         Returns
         -------
-
         Optional[:class:`.Category`]
-            Cached category.
+            Cached category. ``None`` when not cached.
         """
 
-        return self._categories.get(category_type)
+        return self._categories.get(type.value)
 
-    # Count
+    # count
 
-    async def fetch_count(self, category_type):
-        """Fetches a :class:`.Count`.
+    def _create_count(self, payload):
+        return Count(self, payload)
+
+    async def fetch_count(self, category):
+        """Fetches a specific count.
 
         Parameters
         ----------
-
-        category_type: :class:`.CategoryType`
-            Type of the category to fetch.
+        category: :class:`.CategoryType`
+            Category type of the count to be fetched.
 
         Returns
         -------
-
         :class:`.Count`
             Fetched count.
         """
 
-        parameters = {'category': category_type.value}
-        data = (await self._fetch('api_count.php', params=parameters))['category_question_count']
-        data['category'] = category_type.value
-        return Count(self, data)
+        params = {
+            'category': category.value
+        }
+        payload = await self._request('GET', 'api_count.php', params=params)
 
-    async def populate_count(self, category_type):
-        """Populates the internal count cache. This method calls :meth:`.Client.fetch_count` internally.
+        actual_payload = payload['category_question_count']
+        actual_payload['id'] = payload['category_id']
+        return self._create_count(actual_payload)
 
-        Parameters
-        ----------
-
-        category_type: :class:`.CategoryType`
-            Type of the category to populate.
-        """
-
-        counts = self._counts
-        if not counts.get(category_type):
-            counts[category_type] = await self.fetch_count(category_type)
-
-    async def fetch_counts(self):
-        """Fetches all counts.
-
-        .. warning::
-
-            This method could be spammy for the API as it calls :meth:`.Client.fetch_counts` on every category types.
-
-        Returns
-        -------
-
-        Dict[:class:`.CategoryType`, :class:`.Count`]
-            Dict of fetched counts.
-        """
-
-        counts = {}
-        for enum in _category_enums:
-            counts[enum] = await self.fetch_count(enum)
-        return counts
-
-    async def populate_counts(self):
-        """Populates all internal count caches. This method calls :meth:`.Client.fetch_counts` internally."""
-
-        if not self._counts:
-            self._counts = await self.fetch_counts()
-
-    def get_count(self, category_type):
-        """Retrieves a :class:`.Count` from the internal cache.
+    def get_count(self, category):
+        """Retrieves a specific count from the internal count cache.
 
         Parameters
         ----------
-
-        category_type: :class:`.CategoryType`
-            Type of the category to retrieve.
+        category: :class:`.CategoryType`
+            Category type of the count to be retrieved.
 
         Returns
         -------
-
         Optional[:class:`.Count`]
-            Cached count.
+            Cached count. ``None`` when not cached.
         """
 
-        return self._counts.get(category_type)
+        return self._counts.get(category.value)
 
-    # Global Count
+    # global count
+
+    def _create_global_counts(self, payload):
+        global_counts = [GlobalCount(self, payload['overall'])]
+        for id, data in payload['categories'].items():
+            data['id'] = int(id)
+            global_counts.append(GlobalCount(self, data))
+        return global_counts
 
     async def fetch_global_counts(self):
         """Fetches all global counts.
 
         Returns
         -------
-
-        Dict[Union[:class:`.CategoryType`, :class:`str`], :class:`.GlobalCount`]
-            Dict of fetched global counts.
+        List[:class:`.GlobalCount`]
+            List of fetched global counts.
         """
 
-        data = await self._fetch('api_count_global.php')
-        global_counts = {}
+        payload = await self._request('GET', 'api_count_global.php')
+        return self._create_global_counts(payload)
 
-        for id, entry in data['categories'].items():
-            entry['category'] = int(id)
-            global_count = GlobalCount(self, entry)
-            global_counts[global_count.category.type] = global_count
-
-        global_counts['overall'] = GlobalCount(self, data['overall'])
-        return global_counts
-
-    async def populate_global_counts(self):
-        """Populates the internal global count cache. This method calls :meth:`.Client.fetch_global_counts` internally."""
-
-        if not self._global_counts:
-            self._global_counts = await self.fetch_global_counts()
-
-    def get_global_count(self, category_type):
-        """Retrieves a :class:`.GlobalCount` from the internal cache.
+    def get_global_count(self, category):
+        """Retrieves a specific global count from the internal global count cache.
 
         Parameters
         ----------
-
-        category_type: Union[:class:`.CategoryType`, :class:`str`]
-            Type of the category to retrieve.
+        category: :class:`.CategoryType`
+            Category type of the global count to be retrieved.
 
         Returns
         -------
-
         Optional[:class:`.GlobalCount`]
-            Cached global count.
+            Cached global count. ``None`` when not cached.
         """
 
-        return self._global_counts.get(category_type)
+        return self._global_counts.get(category.value if category is not None else None)
+
+    # tools
+
+    async def populate(self, settings=None):
+        """Populates the internal cache.
+
+        Parameters
+        ----------
+        settings: Optiona[:class:`.Settings`]
+            Settings to be used.
+
+            Defaults to :attr:`~.Client.settings`.
+        """
+
+        settings = settings or self.settings
+
+        if settings.token:
+            if self._token is None or settings.overwrite:
+                self._token = await self.fetch_token()
+
+        if settings.questions:
+            if settings.overwrite:
+                questions_amount = self._questions.maxlen
+            else:
+                questions_amount = self._questions.maxlen - len(self._questions)
+
+            if questions_amount > 0:
+                questions_iterator = self.fetch_questions(
+                    amount=questions_amount,
+                    category=settings.category,
+                    difficulty=settings.difficulty,
+                    type=settings.question,
+                    encoding=settings.encoding
+                )
+                self._questions.extend(await questions_iterator.flatten())
+
+        if settings.categories:
+            if not self._categories or settings.overwrite:
+                for category in await self.fetch_categories():
+                    self._categories[category.type.value] = category
+
+        if settings.counts:
+            if not self._counts or settings.overwrite:
+                for category_id in Category._VALUE_MAPPING:
+                    category_type = CategoryType(category_id)
+                    self._counts[category_type.value] = await self.fetch_count(category_type)
+
+        if settings.global_counts:
+            if not self._global_counts or settings.overwrite:
+                for global_count in await self.fetch_global_counts():
+                    category_type = getattr(global_count.category, 'type', None)
+                    category_value = category_type.value if category_type is not None else None
+                    self._global_counts[category_value] = global_count
+
+    async def close(self):
+        """Closes the internal session if exist."""
+
+        if self.session is None:
+            return
+        await self.session.close()

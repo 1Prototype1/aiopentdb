@@ -1,207 +1,204 @@
 """
-MIT License
+    aiopentdb.objects
+    ~~~~~~~~~~~~~~~~~
 
-Copyright (c) 2020 CyCanCode
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+    :copyright: Copyright (c) 2020 CyCanCode.
+    :license: MIT, see LICENSE for more details.
 """
 
 import random
 
 import attr
 
-from .enums import CategoryType, Difficulty, QuestionType
+from .enums import CategoryType, DifficultyType, QuestionType
 
-__all__ = (
-    'Category',
-    'Count',
-    'GlobalCount',
-    'Question'
-)
+__all__ = ('Category', 'Count', 'GlobalCount', 'Question')
 
+def _bypass_setter(target):
+    def new_setter(name, value):
+        object.__setattr__(target, name, value)
 
-@attr.s(slots=True, init=False)
+    return new_setter
+
+def _get_category_mappings():
+    names = (
+        'General Knowledge',
+        'Entertainment: Books',
+        'Entertainment: Film',
+        'Entertainment: Music',
+        'Entertainment: Musicals & Theatres',
+        'Entertainment: Television',
+        'Entertainment: Video Games',
+        'Entertainment: Board Games',
+        'Science & Nature',
+        'Science: Computers',
+        'Science: Mathematics',
+        'Mythology',
+        'Sports',
+        'Geography',
+        'History',
+        'Politics',
+        'Art',
+        'Celebrities',
+        'Animals',
+        'Vehicles',
+        'Entertainment: Comics',
+        'Science: Gadgets',
+        'Entertainment: Japanese Anime & Manga',
+        'Entertainment: Cartoon & Animations'
+    )
+    name_mapping = {}
+    value_mapping = {}
+
+    for id, name in enumerate(names, 9):
+        name_mapping[name] = id
+        value_mapping[id] = name
+
+    return name_mapping, value_mapping
+
+@attr.s(frozen=True, slots=True, init=False)
 class Category:
-    """|dataclass| an OpenTDB category object.
-
-    .. note::
-
-        This class is read-only and not meant to be instantiated by users.
+    """Dataclass representing an OpenTDB category.
 
     Attributes
     ----------
-
     name: :class:`str`
-        Name of the category object.
-
+        Name of the category.
     id: :class:`int`
-        ID of the category object.
-
+        ID of the category.
     type: :class:`.CategoryType`
-        Type of the category object.
+        Type of the category.
     """
 
     name = attr.ib()
     id = attr.ib()
     type = attr.ib()
 
+    _NAME_MAPPING, _VALUE_MAPPING = _get_category_mappings()
+
     def __init__(self, data):
-        self.name = data['name']
-        self.id = data['id']
-        self.type = CategoryType(data['id'])
+        new_setter = _bypass_setter(self)
+        new_setter('name', data['name'])
+        new_setter('id', data['id'])
+        new_setter('type', CategoryType(self.id))
 
+    @classmethod
+    def _from_partial(cls, client, data):
+        name = data.get('name')
+        id = data.get('id')
 
-@attr.s(slots=True, init=False)
+        if name is not None:
+            id = id or cls._NAME_MAPPING[name]
+        elif id is not None:
+            name = name or cls._VALUE_MAPPING[id]
+        else:
+            return None
+
+        return client._categories.get(id) or cls({'name': name, 'id': id})
+
+@attr.s(frozen=True, slots=True, init=False)
 class Count:
-    """|dataclass| an OpenTDB count object.
-
-    .. note::
-
-        This class is read-only and not meant to be instantiated by users.
+    """Dataclass representing an OpenTDB count.
 
     Attributes
     ----------
-
-    category: :class:`.Category`
-        Category that owns the count object.
-
     total: :class:`int`
-        Total question count.
-
+        Total number of all the questions.
     easy: :class:`int`
-        Easy question count.
-
+        Number of easy questions.
     medium: :class:`int`
-        Medium question count.
-
+        Number of medium questions.
     hard: :class:`int`
-        Hard question count.
+        Number of hard questions.
+    category: :class:`.Category`
+        Category that the count belongs to.
     """
 
-    category = attr.ib()
     total = attr.ib()
     easy = attr.ib()
     medium = attr.ib()
     hard = attr.ib()
+    category = attr.ib()
 
     def __init__(self, client, data):
-        self.category = client._CATEGORY_BY_IDS[data['category']]
-        self.total = data['total_question_count']
-        self.easy = data['total_easy_question_count']
-        self.medium = data['total_medium_question_count']
-        self.hard = data['total_hard_question_count']
+        new_setter = _bypass_setter(self)
+        new_setter('total', data['total_question_count'])
+        new_setter('easy', data['total_easy_question_count'])
+        new_setter('medium', data['total_medium_question_count'])
+        new_setter('hard', data['total_hard_question_count'])
+        new_setter('category', Category._from_partial(client, data))
 
-
-@attr.s(slots=True, init=False)
+@attr.s(frozen=True, slots=True, init=False)
 class GlobalCount:
-    """|dataclass| an OpenTDB global count object.
-
-    .. note::
-
-        This class is read-only and not meant to be instantiated by users.
+    """Dataclass representing an OpenTDB global count.
 
     Attributes
     ----------
-
-    category: Union[:class:`.Category`, :class:`str`]
-        Category that owns the global count object.
-
     total: :class:`int`
-        Total question count.
-
+        Total number of all the questions.
     pending: :class:`int`
-        Pending question count.
-
+        Number of pending questions.
     verified: :class:`int`
-        Verified question count.
-
+        Number of verified questions.
     rejected: :class:`int`
-        Rejected question count.
+        Number of rejected questions.
+    category: Optional[:class:`.Category`]
+        Category that the global count belongs to. ``None`` for overall global count.
     """
 
-    category = attr.ib()
     total = attr.ib()
     pending = attr.ib()
     verified = attr.ib()
     rejected = attr.ib()
+    category = attr.ib()
 
     def __init__(self, client, data):
-        self.category = client._CATEGORY_BY_IDS.get(data.get('category'), 'overall')
-        self.total = data['total_num_of_questions']
-        self.pending = data['total_num_of_pending_questions']
-        self.verified = data['total_num_of_verified_questions']
-        self.rejected = data['total_num_of_rejected_questions']
+        new_setter = _bypass_setter(self)
+        new_setter('total', data['total_num_of_questions'])
+        new_setter('pending', data['total_num_of_pending_questions'])
+        new_setter('verified', data['total_num_of_verified_questions'])
+        new_setter('rejected', data['total_num_of_rejected_questions'])
+        new_setter('category', Category._from_partial(client, data))
 
-
-@attr.s(slots=True, init=False)
+@attr.s(frozen=True, slots=True, init=False)
 class Question:
-    """|dataclass| an OpenTDB question object.
-
-    .. note::
-
-        This class is read-only and not meant to be instantiated by users.
+    """Dataclass representing an OpenTDB question.
 
     Attributes
     ----------
-
     type: :class:`.QuestionType`
-        Type of the question object.
-
-    category: :class:`.Category`
-        Category of the question object.
-
-    difficulty: :class:`.Difficulty`
-        Difficulty of the question object.
-
-    content: :class:`str`
-        Content of the question object.
-
+        Type of the question.
+    difficulty: :class:`.DifficultyType`
+        Difficulty of the question.
+    content: :class:`int`
+        Actual content of the question.
     correct_answer: :class:`str`
-        Correct answer for the question content.
-
+        Correct answer of the question.
     incorrect_answers: List[:class:`str`]
         List of incorrect answers.
+    category: :class:`.Category`
+        Category that the question belongs to.
     """
 
     type = attr.ib()
-    category = attr.ib()
     difficulty = attr.ib()
-    content = attr.ib()
-    correct_answer = attr.ib()
-    incorrect_answers = attr.ib()
+    content = attr.ib(repr=False)
+    correct_answer = attr.ib(repr=False)
+    incorrect_answers = attr.ib(repr=False)
+    category = attr.ib()
 
     def __init__(self, client, data, decoder):
-        self.type = QuestionType(decoder(data['type']))
-        self.category = client._CATEGORY_BY_NAMES[decoder(data['category'])]
-        self.difficulty = Difficulty(decoder(data['difficulty']))
-        self.content = decoder(data['question'])
-        self.correct_answer = decoder(data['correct_answer'])
-        self.incorrect_answers = [decoder(answer) for answer in data['incorrect_answers']]
+        new_setter = _bypass_setter(self)
+        new_setter('type', QuestionType(decoder(data['type'])))
+        new_setter('difficulty', DifficultyType(decoder(data['difficulty'])))
+        new_setter('content', decoder(data['question']))
+        new_setter('correct_answer', decoder(data['correct_answer']))
+        new_setter('incorrect_answers', [decoder(answer) for answer in data['incorrect_answers']])
+        new_setter('category', Category._from_partial(client, data))
 
     @property
-    def mixed_answers(self):
-        """List[:class:`str`]: List of mixed answers.
-
-        .. note::
-
-            The answers are shuffled.
-        """
+    def answers(self):
+        """List[:class:`str`]: List of shuffled answers."""
 
         answers = [self.correct_answer, *self.incorrect_answers]
         random.shuffle(answers)

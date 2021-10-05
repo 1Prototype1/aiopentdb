@@ -1,65 +1,48 @@
 """
-MIT License
+    aiopentdb.errors
+    ~~~~~~~~~~~~~~~~
 
-Copyright (c) 2020 CyCanCode
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+    :copyright: Copyright (c) 2020 CyCanCode.
+    :license: MIT, see LICENSE for more details.
 """
 
-__all__ = (
-    'RequestError',
-    'NoResults',
-    'InvalidParameter',
-    'TokenNotFound',
-    'TokenEmpty'
-)
+__all__ = ('OpenTDBError', 'NoResults', 'InvalidParameter', 'TokenNotFound', 'TokenEmpty')
 
+class OpenTDBError(Exception):
+    """Base error class for all OpenTDB related errors."""
 
-class RequestError(Exception):
-    """Base error class for all HTTP request related errors."""
+class NoResults(OpenTDBError):
+    """Error raised when the API could not return any result.
 
-
-class NoResults(RequestError):
-    """|error| the API could not return results. |subclass| :class:`.RequestError`."""
+    This error is a subclass of :class:`.OpenTDBError`.
+    """
 
     def __init__(self):
-        super().__init__('Could not return results')
+        super().__init__('could not return results')
 
+class InvalidParameter(OpenTDBError):
+    """Error raised when the arguments passed during an API call are invalid.
 
-class InvalidParameter(RequestError):
-    """|error| the arguments passed are invalid. |subclass| :class:`.RequestError`."""
-
-    def __init__(self):
-        super().__init__('Arguments passed are invalid')
-
-
-class TokenNotFound(RequestError):
-    """|error| the session token does not exist. |subclass| :class:`.RequestError`."""
+    This error is a subclass of :class:`.OpenTDBError`.
+    """
 
     def __init__(self):
-        super().__init__('Session Token does not exist')
+        super().__init__('arguments passed in are not valid')
 
+class TokenNotFound(OpenTDBError):
+    """Error raised when a session token is not found.
 
-class TokenEmpty(RequestError):
-    """|error| the session token is empty. |subclass| :class:`.RequestError`."""
+    This error is a subclass of :class:`.OpenTDBError`.
+    """
 
     def __init__(self):
-        super().__init__(
-            'Session Token has returned all possible questions for the specified query'
-        )
+        super().__init__('session token does not exist')
+
+class TokenEmpty(OpenTDBError):
+    """Error raised when a session token is empty.
+
+    This error is a subclass of :class:`.OpenTDBError`.
+    """
+
+    def __init__(self):
+        super().__init__('session token has returned all possible questions')
