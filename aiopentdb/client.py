@@ -31,7 +31,7 @@ import urllib.parse
 import aiohttp
 import yarl
 
-from .enums import CategoryType, Encoding, Difficulty, QuestionType
+from .enums import CategoryType, Encoding
 from .errors import InvalidParameter, NoResults, RequestError, TokenEmpty, TokenNotFound
 from .objects import Category, Count, GlobalCount, Question
 
@@ -90,33 +90,6 @@ _category_enums = (
     CategoryType.cartoon_and_animations
 )
 
-_category_by_names = {}
-_category_by_ids = {}
-for _name, _enum in zip(_category_names, _category_enums):
-    _category = Category(_name, _enum.value, _enum)
-    _category_by_names[_name] = _category
-    _category_by_ids[_enum.value] = _category
-
-_decoders = {
-    Encoding.url: urllib.parse.unquote,
-    Encoding.base64: lambda decodable: base64.b64decode(decodable).decode()
-}
-_fields = (
-    'category',
-    'correct_answer'
-)
-_enum_fields = (
-    ('type', QuestionType),
-    ('difficulty', Difficulty)
-)
-
-_errors = {
-    1: NoResults,
-    2: InvalidParameter,
-    3: TokenNotFound,
-    4: TokenEmpty
-}
-
 
 class Client:
     """Class for interacting with the OpenTDB API and handling caches.
@@ -129,7 +102,7 @@ class Client:
         Defaults to ``aiohttp.ClientSession(raise_for_status=True)``.
 
     max_questions: :class:`int`
-        How many questions to cache.
+        Amount of questions to cache.
         Defaults to ``50``.
 
         .. versionadded:: 0.4.0
@@ -143,6 +116,30 @@ class Client:
 
     _BASE_URL = yarl.URL('https://opentdb.com')
     _QUESTION_MAX = 50
+    _DECODERS = {
+        Encoding.url: urllib.parse.unquote,
+        Encoding.base64: lambda decodable: base64.b64decode(decodable).decode()
+    }
+    _ERRORS = {
+        1: NoResults,
+        2: InvalidParameter,
+        3: TokenNotFound,
+        4: TokenEmpty
+    }
+
+    _CATEGORY_BY_NAMES = {}
+    _CATEGORY_BY_IDS = {}
+
+    for _name, _enum in zip(_category_names, _category_enums):
+        _data = {'name': _name, 'id': _enum.value}
+        _category = Category(_data)
+        _CATEGORY_BY_NAMES[_name] = _category
+        _CATEGORY_BY_IDS[_enum.value] = _category
+
+    del _name
+    del _enum
+    del _data
+    del _category
 
     def __init__(self, session=None, max_questions=50):
         self.session = session or aiohttp.ClientSession(raise_for_status=True)
@@ -203,14 +200,18 @@ class Client:
     # Session
 
     async def _fetch(self, endpoint, *args, **kwargs):
-        async with self.session.get(self._BASE_URL / endpoint, *args, **kwargs) as response:
-            data = await response.json()
+        try:
+            async with self.session.get(self._BASE_URL / endpoint, *args, **kwargs) as response:
+                data = await response.json()
+        except aiohttp.ClientResponseError as error:
+            raise RequestError(error.message)
+
         if data is None:
-            raise RequestError('Unable to fetch')
+            raise RequestError('Unknown error occured')
 
         response_code = data.pop('response_code', 0)
         if response_code != 0:
-            raise _errors[response_code]
+            raise self._ERRORS[response_code]
         return data
 
     async def close(self):
@@ -270,6 +271,13 @@ class Client:
 
     # Question
 
+    def _get_amounts(self, amount):
+        repeat, remaining = divmod(amount, self._QUESTION_MAX)
+        amounts = (*itertools.repeat(self._QUESTION_MAX, repeat),)
+        if remaining:
+            amounts += (remaining,)
+        return amounts
+
     async def fetch_questions(
         self,
         amount=10,
@@ -288,14 +296,13 @@ class Client:
             Amount of question to fetch.
             Defaults to ``10``.
 
-            .. versionchanged:: 0.4.0
-
-                Remove question amount limitation.
-
             .. warning::
 
-                Fetching more than 50 questions means making more than 1 API calls because of the 50 questions limit per
-                request.
+                Only 50 questions can be fetched per request.
+
+            .. versionchanged:: 0.4.0
+
+                Remove limit of the question amount.
 
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
@@ -309,6 +316,10 @@ class Client:
         encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use.
 
+            .. note::
+
+                This does not affect result.
+
         token: Optional[:class:`str`]
             Session token to use.
             Defaults to :attr:`.Client.token` if exist.
@@ -321,9 +332,8 @@ class Client:
         """
 
         questions = []
-        repeat, remaining = divmod(amount, self._QUESTION_MAX)
 
-        for actual_amount in tuple(itertools.repeat(self._QUESTION_MAX, repeat)) + (remaining,):
+        for actual_amount in self._get_amounts(amount):
             parameters = {'amount': actual_amount}
             if category_type is not None:
                 parameters['category'] = category_type.value
@@ -333,6 +343,7 @@ class Client:
                 parameters['type'] = question_type.value
             if encoding is not None:
                 parameters['encode'] = encoding.value
+
             if token is None:
                 if self._token is not None:
                     parameters['token'] = self._token
@@ -340,23 +351,76 @@ class Client:
                 parameters['token'] = token
             data = await self._fetch('api.php', params=parameters)
 
-            decoder = _decoders.get(encoding, html.unescape)
+            decoder = self._DECODERS.get(encoding, html.unescape)
             for entry in data['results']:
-                entry['content'] = decoder(entry.pop('question'))
-                for field in _fields:
-                    entry[field] = decoder(entry[field])
-
-                incorrect_answers = entry['incorrect_answers']
-                for index, incorrect_answer in enumerate(incorrect_answers):
-                    incorrect_answers[index] = decoder(incorrect_answer)
-
-                entry['category'] = _category_by_names[entry['category']]
-                for field, enum in _enum_fields:
-                    entry[field] = enum(decoder(entry[field]))
-
-                questions.append(Question(**entry))
+                questions.append(Question(self, entry, decoder))
 
         return questions
+
+    async def generate_questions(
+        self,
+        amount=10,
+        category_type=None,
+        difficulty=None,
+        question_type=None,
+        encoding=None,
+        token=None
+    ):
+        """Generates questions. Unlike :meth:`.Client.fetch_questions`, this method will make requests one by one. The
+        following example would only make 2 requests instead of 4 as it stops at 75 questions:
+
+        .. code:: py
+
+            count = 0
+            async for question in client.generate_questions(amount=200):
+                if count >= 75:
+                    break
+                count += 1
+
+        .. versionadded:: 0.5.0
+
+        Parameters
+        ----------
+
+        amount: :class:`int`
+            Amount of question to fetch.
+            Defaults to ``10``.
+
+            .. warning::
+
+                Only 50 questions can be generated per request.
+
+        category_type: Optional[:class:`.CategoryType`]
+            Type of the question category to fetch.
+
+        difficulty: Optional[:class:`.Difficulty`]
+            Difficulty of the question to fetch.
+
+        question_type: Optional[:class:`.QuestionType`]
+            Type of the question to fetch.
+
+        encoding: Optional[:class:`.Encoding`]
+            Encoding of the response to use.
+
+            .. note::
+
+                This does not affect result.
+
+        token: Optional[:class:`str`]
+            Session token to use.
+            Defaults to :attr:`.Client.token` if exist.
+
+        Yields
+        ------
+        :class:`.Question`
+            Generated question.
+        """
+
+        for actual_amount in self._get_amounts(amount):
+            for question in await self.fetch_questions(
+                actual_amount, category_type, difficulty, question_type, encoding, token
+            ):
+                yield question
 
     async def populate_questions(
         self,
@@ -383,6 +447,10 @@ class Client:
         encoding: Optional[:class:`.Encoding`]
             Encoding of the response to use.
 
+            .. note::
+
+                This does not affect result.
+
         token: Optional[:class:`str`]
             Session token to use.
             Defaults to :attr:`.Client.token` if exist.
@@ -393,9 +461,7 @@ class Client:
         if amount < 1:
             return
 
-        new_questions = await self.fetch_questions(
-            amount, category_type, difficulty, question_type, encoding, token
-        )
+        new_questions = await self.fetch_questions(amount, category_type, difficulty, question_type, encoding, token)
         questions.extend(new_questions)
 
     def get_questions(
@@ -416,7 +482,7 @@ class Client:
 
             .. versionchanged:: 0.4.0
 
-                Remove question amount limitation.
+                Remove limit of the question amount.
 
         category_type: Optional[:class:`.CategoryType`]
             Type of the question category to fetch.
@@ -434,34 +500,25 @@ class Client:
             List of cached questions.
         """
 
-        actual_questions = self._questions
+        questions = self._questions
         retrieved_questions = []
+
         count = 0
         for question in self.questions:
             if count >= amount:
                 break
 
-            if (
-                category_type is not None
-                and question.category.type != category_type
-            ):
+            if category_type is not None and question.category.type != category_type:
+                continue
+            if difficulty is not None and question.difficulty != difficulty:
+                continue
+            if question_type is not None and question.type != question_type:
                 continue
 
-            if (
-                difficulty is not None
-                and question.difficulty != difficulty
-            ):
-                continue
-
-            if (
-                question_type is not None
-                and question.type != question_type
-            ):
-                continue
-
-            actual_questions.remove(question)
+            questions.remove(question)
             retrieved_questions.append(question)
             count += 1
+
         return retrieved_questions
 
     # Category
@@ -480,9 +537,7 @@ class Client:
 
         categories = {}
         for entry in data['trivia_categories']:
-            type = CategoryType(entry['id'])
-            entry['type'] = type
-            categories[type] = Category(**entry)
+            categories[type] = Category(entry)
         return categories
 
     async def populate_categories(self):
@@ -528,16 +583,9 @@ class Client:
         """
 
         parameters = {'category': category_type.value}
-        data = await self._fetch('api_count.php', params=parameters)
-
-        count = data['category_question_count']
-        return Count(
-            _category_by_ids[category_type.value],
-            count['total_question_count'],
-            count['total_easy_question_count'],
-            count['total_medium_question_count'],
-            count['total_hard_question_count']
-        )
+        data = (await self._fetch('api_count.php', params=parameters))['category_question_count']
+        data['category'] = category_type.value
+        return Count(self, data)
 
     async def populate_count(self, category_type):
         """Populates the internal count cache. This method calls :meth:`.Client.fetch_count` internally.
@@ -549,12 +597,16 @@ class Client:
             Type of the category to populate.
         """
 
-        count = self._counts
-        if not count.get(category_type):
-            count[category_type] = await self.fetch_count(category_type)
+        counts = self._counts
+        if not counts.get(category_type):
+            counts[category_type] = await self.fetch_count(category_type)
 
     async def fetch_counts(self):
         """Fetches all counts.
+
+        .. warning::
+
+            This method could be spammy for the API as it calls :meth:`.Client.fetch_counts` on every category types.
 
         Returns
         -------
@@ -563,10 +615,10 @@ class Client:
             Dict of fetched counts.
         """
 
-        count = {}
+        counts = {}
         for enum in _category_enums:
-            count[enum] = await self.fetch_count(enum)
-        return count
+            counts[enum] = await self.fetch_count(enum)
+        return counts
 
     async def populate_counts(self):
         """Populates all internal count caches. This method calls :meth:`.Client.fetch_counts` internally."""
@@ -605,29 +657,15 @@ class Client:
         """
 
         data = await self._fetch('api_count_global.php')
-        global_count = {}
+        global_counts = {}
 
-        overall_count = data['overall']
-        global_count['overall'] = GlobalCount(
-            'overall',
-            overall_count['total_num_of_questions'],
-            overall_count['total_num_of_pending_questions'],
-            overall_count['total_num_of_verified_questions'],
-            overall_count['total_num_of_rejected_questions']
-        )
+        for id, entry in data['categories'].items():
+            entry['category'] = int(id)
+            global_count = GlobalCount(self, entry)
+            global_counts[global_count.category.type] = global_count
 
-        categories = data['categories']
-        for id, count in categories.items():
-            category = _category_by_ids[int(id)]
-            global_count[category.type] = GlobalCount(
-                category,
-                count['total_num_of_questions'],
-                count['total_num_of_pending_questions'],
-                count['total_num_of_verified_questions'],
-                count['total_num_of_rejected_questions']
-            )
-
-        return global_count
+        global_counts['overall'] = GlobalCount(self, data['overall'])
+        return global_counts
 
     async def populate_global_counts(self):
         """Populates the internal global count cache. This method calls :meth:`.Client.fetch_global_counts` internally."""

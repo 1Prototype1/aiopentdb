@@ -26,6 +26,8 @@ import random
 
 import attr
 
+from .enums import CategoryType, Difficulty, QuestionType
+
 __all__ = (
     'Category',
     'Count',
@@ -34,13 +36,13 @@ __all__ = (
 )
 
 
-@attr.s(frozen=True)
+@attr.s(slots=True, init=False)
 class Category:
     """|dataclass| an OpenTDB category object.
 
     .. note::
 
-        This class is not meant to be instantiated by users.
+        This class is read-only and not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -59,14 +61,19 @@ class Category:
     id = attr.ib()
     type = attr.ib()
 
+    def __init__(self, data):
+        self.name = data['name']
+        self.id = data['id']
+        self.type = CategoryType(data['id'])
 
-@attr.s(frozen=True)
+
+@attr.s(slots=True, init=False)
 class Count:
     """|dataclass| an OpenTDB count object.
 
     .. note::
 
-        This class is not meant to be instantiated by users.
+        This class is read-only and not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -93,14 +100,21 @@ class Count:
     medium = attr.ib()
     hard = attr.ib()
 
+    def __init__(self, client, data):
+        self.category = client._CATEGORY_BY_IDS[data['category']]
+        self.total = data['total_question_count']
+        self.easy = data['total_easy_question_count']
+        self.medium = data['total_medium_question_count']
+        self.hard = data['total_hard_question_count']
 
-@attr.s(frozen=True)
+
+@attr.s(slots=True, init=False)
 class GlobalCount:
     """|dataclass| an OpenTDB global count object.
 
     .. note::
 
-        This class is not meant to be instantiated by users.
+        This class is read-only and not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -127,14 +141,21 @@ class GlobalCount:
     verified = attr.ib()
     rejected = attr.ib()
 
+    def __init__(self, client, data):
+        self.category = client._CATEGORY_BY_IDS.get(data.get('category'), 'overall')
+        self.total = data['total_num_of_questions']
+        self.pending = data['total_num_of_pending_questions']
+        self.verified = data['total_num_of_verified_questions']
+        self.rejected = data['total_num_of_rejected_questions']
 
-@attr.s(frozen=True)
+
+@attr.s(slots=True, init=False)
 class Question:
     """|dataclass| an OpenTDB question object.
 
     .. note::
 
-        This class is not meant to be instantiated by users.
+        This class is read-only and not meant to be instantiated by users.
 
     Attributes
     ----------
@@ -165,9 +186,22 @@ class Question:
     correct_answer = attr.ib()
     incorrect_answers = attr.ib()
 
+    def __init__(self, client, data, decoder):
+        self.type = QuestionType(decoder(data['type']))
+        self.category = client._CATEGORY_BY_NAMES[decoder(data['category'])]
+        self.difficulty = Difficulty(decoder(data['difficulty']))
+        self.content = decoder(data['question'])
+        self.correct_answer = decoder(data['correct_answer'])
+        self.incorrect_answers = [decoder(answer) for answer in data['incorrect_answers']]
+
     @property
     def mixed_answers(self):
-        """List[:class:`str`]: List of mixed answers."""
+        """List[:class:`str`]: List of mixed answers.
+
+        .. note::
+
+            The answers are shuffled.
+        """
 
         answers = [self.correct_answer, *self.incorrect_answers]
         random.shuffle(answers)

@@ -3,9 +3,6 @@ import setuptools
 with open('README.rst') as readme:
     long_description = readme.read()
 
-with open('requirements.txt') as requirements:
-    install_requires = requirements.readline()
-
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Framework :: AsyncIO',
@@ -33,10 +30,21 @@ project_urls = {
 
 packages = ['aiopentdb']
 
+install_requires = [
+    'aiohttp'
+]
+extras_require = {
+    'dev': [
+        'flake8',
+        'sphinx',
+        'sphinxcontrib_trio',
+        'sphinx_rtd_theme'
+    ]
+}
 
 setuptools.setup(
     name='aiopentdb',
-    version='0.4.0',
+    version='0.5.0',
     description='Async Python wrapper for the OpenTDB API',
     long_description=long_description,
     long_description_content_type='text/x-rst',
@@ -48,6 +56,8 @@ setuptools.setup(
     keywords=' '.join(keywords),
     project_urls=project_urls,
     packages=packages,
+    include_package_data=True,
     install_requires=install_requires,
+    extras_require=extras_require,
     python_requires='~=3.6'
 )
